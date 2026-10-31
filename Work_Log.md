@@ -27,3 +27,12 @@
 - Prehod: lastna animacija prek withFrameNanos (neodvisna od sistemskih nastavitev animacij), dve plasti slik (stara spodaj, nova zgoraj z alpha).
 - Nastavitev "Obseg premika ure" (OLED).
 - Workflow: checkout@v6, setup-java@v5, setup-gradle@v5, upload-artifact@v6, runner ubuntu-24.04 (preverjeno v iskanju 2026-10-31). setup-gradle@v6 zahteva sprejem pogojev za komponento gradle-actions-caching, zato ostajamo na v5.
+
+## 2026-10-31 — v0.4.0 (faza 3: radio)
+- Media3 ExoPlayer 1.7.1 (Google v primeru uporablja minSdk 21 s to verzijo), HLS modul; servis v ospredju z obvestilom, samodejni ponovni poskusi (max 6).
+- Seznam postaj v DataStore (JSON), 4 ikone dodeljive poljubni postaji, uvoz M3U/PLS, izvoz M3U, preizkus postaje.
+- Privzeta postaja: samo Val 202 (http://mp3.rtvslo.si/val202, vir: Wikipedia polje Webcast + direktorij postaj). Povezav za Prvi, Ars ipd. nisem nasel v zanesljivem viru, zato ostanejo ikone prazne.
+- Casovnik izklopa (15/30/45/60/90 min ali po meri), tece v servisu.
+- Spanje: ce radio zacne igrati po izbrani uri (privzeto 22:00-06:00), zaslon se zatemni (svetlost okna), diaprojekcija se izklopi in prikaze se izbrana barva, ura in ikone so zatemnjene.
+- usesCleartextTraffic=true (veliko postaj uporablja http).
+- STANJE: ni prevedeno v tem okolju; preveri GitHub Actions. Stream ni bil preizkusen z napravo.

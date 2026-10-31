@@ -39,7 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val Palette = listOf(
+internal val Palette = listOf(
     0xFFFFFFFFL, 0xFFFFEB3BL, 0xFFFF9800L, 0xFFF44336L,
     0xFF4CAF50L, 0xFF00BCD4L, 0xFF2196F3L, 0xFF000000L,
     0xFF212121L, 0xFF0D1B2AL,
@@ -182,22 +182,25 @@ fun SettingsScreen(
                     onChange { it.copy(barHideSec = v.toInt()) }
                 }
             }
+
+            RadioSettingsSection(s, onChange)
+            NightSettingsSection(s, onChange)
         }
     }
 }
 
 @Composable
-private fun Title(text: String) {
+internal fun Title(text: String) {
     Text(text, color = Color(0xFF90CAF9), fontSize = 20.sp, modifier = Modifier.padding(top = 16.dp))
 }
 
 @Composable
-private fun Label(text: String) {
+internal fun Label(text: String) {
     Text(text, color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
 }
 
 @Composable
-private fun SwitchRow(label: String, checked: Boolean, onChecked: (Boolean) -> Unit) {
+internal fun SwitchRow(label: String, checked: Boolean, onChecked: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = Color.White, modifier = Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = onChecked)
@@ -205,7 +208,7 @@ private fun SwitchRow(label: String, checked: Boolean, onChecked: (Boolean) -> U
 }
 
 @Composable
-private fun SliderRow(
+internal fun SliderRow(
     label: String,
     value: Float,
     range: ClosedFloatingPointRange<Float>,
@@ -224,7 +227,7 @@ private fun SliderRow(
 }
 
 @Composable
-private fun <T> ChipRow(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+internal fun <T> ChipRow(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -240,7 +243,7 @@ private fun <T> ChipRow(options: List<Pair<T, String>>, selected: T, onSelect: (
 }
 
 @Composable
-private fun ColorRow(selected: Long, onSelect: (Long) -> Unit) {
+internal fun ColorRow(selected: Long, onSelect: (Long) -> Unit) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(10.dp),

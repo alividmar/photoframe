@@ -18,7 +18,7 @@ Android aplikacija za tablet: digitalni foto okvir z uro, radiem in alarmom. APK
 ## Faze
 1. Ogrodje + GitHub gradnja APK (narejeno)
 2. Diaprojekcija iz lokalne mape + ura (narejeno, ni preizkuseno na napravi)
-3. Radio (4 postaje) + vecerna zatemnitev
+3. Radio (4 postaje, uvoz/izvoz M3U/PLS, casovnik izklopa) + vecerna zatemnitev (narejeno v 0.4.0, ni preizkuseno)
 4. Alarm (2 ikoni, izbira zvoka)
 5. NAS (SMB, WebDAV)
 6. Dropbox, Google Drive/Photos, OneDrive
@@ -27,3 +27,8 @@ Android aplikacija za tablet: digitalni foto okvir z uro, radiem in alarmom. APK
 ## Pravila
 - Nobenih izmisljenih podatkov, API-jev ali povezav; vse preveriti pri uradnih virih.
 - Kljuci in gesla nikoli v kodi (GitHub secrets / nastavitve naprave).
+
+## Dodatne zahteve (faza 3)
+- Uporabnik lahko doda, uredi in izbrise svoje postaje; uvoz in izvoz v obicajnem formatu (M3U, uvoz tudi PLS).
+- Casovnik za samodejni izklop radia v meniju, dosegljiv med predvajanjem.
+- V nastavitvah spanja: izklop diaprojekcije in izbira enobarvnega ozadja, svetlost zaslona, svetlost ure in ikon.

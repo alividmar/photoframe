@@ -41,6 +41,15 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.delay
 import kotlin.random.Random
+import android.Manifest
+import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.draw.alpha
+import androidx.core.content.ContextCompat
+import java.time.LocalTime
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -76,6 +85,17 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Ali je trenutni cas v nocnem oknu (okno lahko prehaja cez polnoc). */
+fun inNightWindow(startMin: Int, endMin: Int): Boolean {
+    val now = LocalTime.now()
+    val m = now.hour * 60 + now.minute
+    return when {
+        startMin == endMin -> false
+        startMin < endMin -> m in startMin until endMin
+        else -> m >= startMin || m < endMin
+    }
+}
+
 @Composable
 fun App(repo: SettingsRepository) {
     val loaded by repo.flow.collectAsState(initial = null)
@@ -86,22 +106,74 @@ fun App(repo: SettingsRepository) {
     }
 
     val context = LocalContext.current
+    val activity = context as? Activity
     val scope = rememberCoroutineScope()
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var photos by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var touchCount by remember { mutableIntStateOf(0) }
     var barVisible by remember { mutableStateOf(true) }
     var oledStep by remember { mutableIntStateOf(0) }
+    var nightActive by rememberSaveable { mutableStateOf(false) }
+
+    val radioStatus by RadioState.status.collectAsState()
+    val radioStation by RadioState.station.collectAsState()
+    val timerEndsAt by RadioState.timerEndsAt.collectAsState()
+    val radioOn = radioStatus == RadioStatus.LOADING || radioStatus == RadioStatus.PLAYING
+    val slotStations = List(4) { i ->
+        s.slotIds.getOrNull(i)?.let { id -> s.stations.firstOrNull { it.id == id } }
+    }
+
+    val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { _ -> }
+
+    fun playStation(st: Station) {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        RadioService.play(context, st)
+    }
 
     // Ko se spremeni mapa, na novo poiscemo slike
     LaunchedEffect(s.folderUri) {
         photos = s.folderUri?.let { PhotoScanner.scan(context, Uri.parse(it)) } ?: emptyList()
     }
 
-    // Ikone: ob dotiku se pokazejo, po nekaj sekundah se spet skrijejo
-    LaunchedEffect(touchCount, showSettings, s.barAutoHide, s.barHideSec) {
+    // Napaka radia (povezava ni uspela niti po vec poskusih)
+    LaunchedEffect(radioStatus) {
+        if (radioStatus == RadioStatus.ERROR) {
+            Toast.makeText(context, "Radia ni mogoce predvajati. Preveri povezavo ali naslov postaje.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Spanje: ce radio zacne igrati v nocnem oknu, vklopimo zatemnitev; konca ob ustavitvi radia ali jutranji uri
+    LaunchedEffect(radioOn, s.nightEnabled, s.nightStartMin, s.nightEndMin) {
+        if (!radioOn || !s.nightEnabled) {
+            nightActive = false
+            return@LaunchedEffect
+        }
+        if (!nightActive && inNightWindow(s.nightStartMin, s.nightEndMin)) nightActive = true
+        while (true) {
+            delay(30_000L)
+            if (nightActive && !inNightWindow(s.nightStartMin, s.nightEndMin)) nightActive = false
+        }
+    }
+
+    // Svetlost zaslona ponoci
+    LaunchedEffect(nightActive, s.nightBrightness) {
+        val w = activity?.window ?: return@LaunchedEffect
+        val lp = w.attributes
+        lp.screenBrightness =
+            if (nightActive) s.nightBrightness.coerceIn(0.01f, 1f) else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        w.attributes = lp
+    }
+
+    // Ikone: ob dotiku se pokazejo, po nekaj sekundah se spet skrijejo (ponoci vedno)
+    val autoHide = s.barAutoHide || nightActive
+    LaunchedEffect(touchCount, showSettings, autoHide, s.barHideSec) {
         barVisible = true
-        if (s.barAutoHide && !showSettings) {
+        if (autoHide && !showSettings) {
             delay(s.barHideSec * 1000L)
             barVisible = false
         }
@@ -139,12 +211,15 @@ fun App(repo: SettingsRepository) {
         }
     }
 
+    val photosOff = nightActive && s.nightPhotosOff
+    val dimAlpha = if (nightActive) s.nightClockAlpha else 1f
+
     BackHandler(enabled = showSettings) { showSettings = false }
 
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(if (photosOff) Color(s.nightBgColor) else Color.Black)
             .pointerInput(Unit) {
                 // Opazujemo dotike, ne da bi jih porabili
                 awaitPointerEventScope {
@@ -155,25 +230,28 @@ fun App(repo: SettingsRepository) {
                 }
             },
     ) {
-        if (photos.isNotEmpty()) {
-            Slideshow(
-                photos = photos,
-                intervalSec = s.intervalSec,
-                shuffle = s.shuffle,
-                imageScale = s.imageScale,
-                fadeMs = s.fadeMs,
-                fadeThroughBlack = s.fadeThroughBlack,
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
-            EmptyHint(hasFolder = s.folderUri != null, onOpenSettings = { showSettings = true })
+        if (!photosOff) {
+            if (photos.isNotEmpty()) {
+                Slideshow(
+                    photos = photos,
+                    intervalSec = s.intervalSec,
+                    shuffle = s.shuffle,
+                    imageScale = s.imageScale,
+                    fadeMs = s.fadeMs,
+                    fadeThroughBlack = s.fadeThroughBlack,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                EmptyHint(hasFolder = s.folderUri != null, onOpenSettings = { showSettings = true })
+            }
         }
 
         ClockOverlay(
             s = s,
             modifier = Modifier
                 .align(clockAlignment)
-                .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 96.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 96.dp)
+                .alpha(dimAlpha),
         )
 
         AnimatedVisibility(
@@ -183,10 +261,26 @@ fun App(repo: SettingsRepository) {
             exit = fadeOut(),
         ) {
             BottomBar(
+                modifier = Modifier.alpha(dimAlpha),
                 shiftX = barShift.first,
                 shiftY = barShift.second,
+                slots = slotStations,
+                activeId = if (radioOn) radioStation?.id else null,
+                loading = radioStatus == RadioStatus.LOADING,
+                radioOn = radioOn,
+                timerEndsAt = timerEndsAt,
+                onSlot = { i ->
+                    val st = slotStations[i]
+                    when {
+                        st == null ->
+                            Toast.makeText(context, "Ikona je prazna. Postajo izberes v Nastavitvah.", Toast.LENGTH_SHORT).show()
+                        radioOn && radioStation?.id == st.id -> RadioService.stop(context)
+                        else -> playStation(st)
+                    }
+                },
+                onTimer = { minutes -> RadioService.setTimer(context, minutes) },
                 onSettings = { showSettings = true },
-                onSoon = { msg -> Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() },
+                onAlarmSoon = { msg -> Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() },
             )
         }
 

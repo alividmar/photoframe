@@ -50,6 +50,17 @@ data class AppSettings(
     val fadeThroughBlack: Boolean = false,
     // Obseg OLED premika ure (0.1 = malo, 1.0 = cez cel zaslon)
     val oledRange: Float = 0.6f,
+    // Radio
+    val stations: List<Station> = DefaultStations.list,
+    val slotIds: List<String> = DefaultStations.slots,
+    // Spanje (vecerna zatemnitev ob zagonu radia)
+    val nightEnabled: Boolean = true,
+    val nightStartMin: Int = 22 * 60,
+    val nightEndMin: Int = 6 * 60,
+    val nightPhotosOff: Boolean = true,
+    val nightBgColor: Long = 0xFF000000,
+    val nightBrightness: Float = 0.1f,
+    val nightClockAlpha: Float = 0.35f,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "photoframe_settings")
@@ -78,6 +89,15 @@ class SettingsRepository(private val context: Context) {
     private val kFadeMs = intPreferencesKey("fade_ms")
     private val kFadeBlack = booleanPreferencesKey("fade_through_black")
     private val kOledRange = floatPreferencesKey("oled_range")
+    private val kStations = stringPreferencesKey("stations_json")
+    private val kSlots = stringPreferencesKey("slot_ids")
+    private val kNightOn = booleanPreferencesKey("night_enabled")
+    private val kNightStart = intPreferencesKey("night_start_min")
+    private val kNightEnd = intPreferencesKey("night_end_min")
+    private val kNightPhotos = booleanPreferencesKey("night_photos_off")
+    private val kNightBg = longPreferencesKey("night_bg_color")
+    private val kNightBright = floatPreferencesKey("night_brightness")
+    private val kNightAlpha = floatPreferencesKey("night_clock_alpha")
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { read(it) }
 
@@ -115,6 +135,15 @@ class SettingsRepository(private val context: Context) {
             fadeMs = p[kFadeMs] ?: d.fadeMs,
             fadeThroughBlack = p[kFadeBlack] ?: d.fadeThroughBlack,
             oledRange = p[kOledRange] ?: d.oledRange,
+            stations = p[kStations]?.let { StationJson.decode(it) } ?: d.stations,
+            slotIds = p[kSlots]?.let { SlotCodec.decode(it) } ?: d.slotIds,
+            nightEnabled = p[kNightOn] ?: d.nightEnabled,
+            nightStartMin = p[kNightStart] ?: d.nightStartMin,
+            nightEndMin = p[kNightEnd] ?: d.nightEndMin,
+            nightPhotosOff = p[kNightPhotos] ?: d.nightPhotosOff,
+            nightBgColor = p[kNightBg] ?: d.nightBgColor,
+            nightBrightness = p[kNightBright] ?: d.nightBrightness,
+            nightClockAlpha = p[kNightAlpha] ?: d.nightClockAlpha,
         )
     }
 
@@ -142,5 +171,14 @@ class SettingsRepository(private val context: Context) {
         p[kFadeMs] = s.fadeMs
         p[kFadeBlack] = s.fadeThroughBlack
         p[kOledRange] = s.oledRange
+        p[kStations] = StationJson.encode(s.stations)
+        p[kSlots] = SlotCodec.encode(s.slotIds)
+        p[kNightOn] = s.nightEnabled
+        p[kNightStart] = s.nightStartMin
+        p[kNightEnd] = s.nightEndMin
+        p[kNightPhotos] = s.nightPhotosOff
+        p[kNightBg] = s.nightBgColor
+        p[kNightBright] = s.nightBrightness
+        p[kNightAlpha] = s.nightClockAlpha
     }
 }
