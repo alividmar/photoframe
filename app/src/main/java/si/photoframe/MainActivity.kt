@@ -117,14 +117,18 @@ fun App(repo: SettingsRepository) {
         }
     }
 
-    val clockTarget = remember(oledStep) {
-        val r = Random(oledStep * 7919L + 13L)
-        (r.nextFloat() * 1.8f - 0.9f) to (r.nextFloat() * 1.8f - 0.9f)
+    val clockTarget = remember(oledStep, s.clockPosition, s.oledMoveClock) {
+        val (bx, by) = s.clockPosition.bias()
+        if (s.oledMoveClock) {
+            val r = Random(oledStep * 7919L + 13L)
+            wander(bx, r.nextFloat()) to wander(by, r.nextFloat())
+        } else {
+            bx to by
+        }
     }
     val biasX by animateFloatAsState(clockTarget.first, tween(2500), label = "clockX")
     val biasY by animateFloatAsState(clockTarget.second, tween(2500), label = "clockY")
-    val clockAlignment: Alignment =
-        if (s.oledMoveClock) BiasAlignment(biasX, biasY) else s.clockPosition.alignment()
+    val clockAlignment: Alignment = BiasAlignment(biasX, biasY)
 
     val barShift = remember(oledStep, s.oledMoveBar) {
         if (s.oledMoveBar) {
@@ -156,7 +160,7 @@ fun App(repo: SettingsRepository) {
                 photos = photos,
                 intervalSec = s.intervalSec,
                 shuffle = s.shuffle,
-                cropToFill = s.cropToFill,
+                imageScale = s.imageScale,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {

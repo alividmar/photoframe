@@ -23,7 +23,7 @@ fun Slideshow(
     photos: List<Uri>,
     intervalSec: Int,
     shuffle: Boolean,
-    cropToFill: Boolean,
+    imageScale: ImageScale,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -49,7 +49,10 @@ fun Slideshow(
             AsyncImage(
                 model = ImageRequest.Builder(context).data(uri).build(),
                 contentDescription = null,
-                contentScale = if (cropToFill) ContentScale.Crop else ContentScale.Fit,
+                contentScale = when (imageScale) {
+                    ImageScale.FIT -> ContentScale.Fit     // daljsa stranica do roba, ostalo crno
+                    ImageScale.FILL -> ContentScale.Crop
+                },
                 modifier = Modifier.fillMaxSize(),
             )
         }

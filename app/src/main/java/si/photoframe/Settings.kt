@@ -18,6 +18,7 @@ enum class ClockStyle { DIGITAL, ANALOG, OFF }
 enum class ClockPosition { TOP_LEFT, TOP_RIGHT, CENTER, BOTTOM_LEFT, BOTTOM_RIGHT }
 enum class DigitalFont { SANS, SERIF, MONO }
 enum class AnalogFace { TICKS, DOTS, NONE }
+enum class ImageScale { FIT, FILL }   // FIT = cela slika, ostalo crno; FILL = napolni zaslon (obreze)
 
 /** Vse nastavitve aplikacije na enem mestu. Barve so shranjene kot ARGB (Long). */
 data class AppSettings(
@@ -25,7 +26,7 @@ data class AppSettings(
     val folderUri: String? = null,
     val intervalSec: Int = 10,
     val shuffle: Boolean = true,
-    val cropToFill: Boolean = false,
+    val imageScale: ImageScale = ImageScale.FIT,
     // Ura
     val clockStyle: ClockStyle = ClockStyle.DIGITAL,
     val clockPosition: ClockPosition = ClockPosition.BOTTOM_RIGHT,
@@ -52,7 +53,7 @@ class SettingsRepository(private val context: Context) {
     private val kFolder = stringPreferencesKey("folder_uri")
     private val kInterval = intPreferencesKey("interval_sec")
     private val kShuffle = booleanPreferencesKey("shuffle")
-    private val kCrop = booleanPreferencesKey("crop_to_fill")
+    private val kImageScale = stringPreferencesKey("image_scale")
     private val kStyle = stringPreferencesKey("clock_style")
     private val kPos = stringPreferencesKey("clock_position")
     private val kColor = longPreferencesKey("clock_color")
@@ -86,7 +87,7 @@ class SettingsRepository(private val context: Context) {
             folderUri = p[kFolder],
             intervalSec = p[kInterval] ?: d.intervalSec,
             shuffle = p[kShuffle] ?: d.shuffle,
-            cropToFill = p[kCrop] ?: d.cropToFill,
+            imageScale = enumOf(p[kImageScale], d.imageScale),
             clockStyle = enumOf(p[kStyle], d.clockStyle),
             clockPosition = enumOf(p[kPos], d.clockPosition),
             clockColor = p[kColor] ?: d.clockColor,
@@ -110,7 +111,7 @@ class SettingsRepository(private val context: Context) {
         if (s.folderUri == null) p.remove(kFolder) else p[kFolder] = s.folderUri
         p[kInterval] = s.intervalSec
         p[kShuffle] = s.shuffle
-        p[kCrop] = s.cropToFill
+        p[kImageScale] = s.imageScale.name
         p[kStyle] = s.clockStyle.name
         p[kPos] = s.clockPosition.name
         p[kColor] = s.clockColor

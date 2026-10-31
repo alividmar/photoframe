@@ -81,8 +81,9 @@ fun SettingsScreen(
                 Modifier
                     .fillMaxWidth()
                     .height(260.dp)
-                    .background(Color(0xFF455A64)),
-                contentAlignment = Alignment.Center,
+                    .background(Color(0xFF455A64))
+                    .padding(16.dp),
+                contentAlignment = s.clockPosition.alignment(),
             ) { ClockOverlay(s) }
 
             Title("Slike")
@@ -96,7 +97,11 @@ fun SettingsScreen(
                 onChange { it.copy(intervalSec = v.toInt()) }
             }
             SwitchRow("Nakljucni vrstni red", s.shuffle) { v -> onChange { it.copy(shuffle = v) } }
-            SwitchRow("Slika napolni zaslon (obreze robove)", s.cropToFill) { v -> onChange { it.copy(cropToFill = v) } }
+            Label("Prikaz slike")
+            ChipRow(
+                listOf(ImageScale.FIT to "Cela slika, ostalo crno", ImageScale.FILL to "Napolni zaslon (obreze)"),
+                s.imageScale,
+            ) { v -> onChange { it.copy(imageScale = v) } }
 
             Title("Ura")
             ChipRow(
@@ -148,6 +153,11 @@ fun SettingsScreen(
             }
 
             Title("OLED zascita")
+            Text(
+                "Ura se premika v okolici polozaja, ki si ga izbral zgoraj.",
+                color = Color.LightGray,
+                fontSize = 12.sp,
+            )
             SwitchRow("Premikaj uro po zaslonu", s.oledMoveClock) { v -> onChange { it.copy(oledMoveClock = v) } }
             SwitchRow("Premikaj ikone spodaj", s.oledMoveBar) { v -> onChange { it.copy(oledMoveBar = v) } }
             if (s.oledMoveClock || s.oledMoveBar) {

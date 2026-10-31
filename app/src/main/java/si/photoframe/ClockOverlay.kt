@@ -37,6 +37,22 @@ fun ClockPosition.alignment(): Alignment = when (this) {
     ClockPosition.BOTTOM_RIGHT -> Alignment.BottomEnd
 }
 
+/** Polozaj kot par (vodoravno, navpicno) v razponu -1..1. */
+fun ClockPosition.bias(): Pair<Float, Float> = when (this) {
+    ClockPosition.TOP_LEFT -> -1f to -1f
+    ClockPosition.TOP_RIGHT -> 1f to -1f
+    ClockPosition.CENTER -> 0f to 0f
+    ClockPosition.BOTTOM_LEFT -> -1f to 1f
+    ClockPosition.BOTTOM_RIGHT -> 1f to 1f
+}
+
+/** OLED premik: ura se nakljucno odmakne od izbranega polozaja (r je nakljucno stevilo 0..1). */
+fun wander(base: Float, r: Float): Float = when {
+    base > 0.5f -> base - r * 0.6f
+    base < -0.5f -> base + r * 0.6f
+    else -> (r * 2f - 1f) * 0.6f
+}
+
 /** Cas, ki se osvezi vsako sekundo (ali vsako minuto, ce sekund ne prikazujemo). */
 @Composable
 fun rememberNow(precise: Boolean): State<LocalDateTime> =
