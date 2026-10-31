@@ -1,19 +1,19 @@
 package si.photoframe
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -25,9 +25,13 @@ import coil.size.Scale
 import kotlinx.coroutines.delay
 
 /**
- * Prikazuje slike ene za drugo.
- * Naslednjo sliko najprej naloziva v pomnilnik in sele nato zacne prehod. Tako se prehod vedno
- * zgodi v celoti (na pocasnih napravah se slika prej pojavila sele po koncu prehoda, kar je bilo videti kot rez).
+ * Diaprojekcija z lastnim prehodom.
+ *
+ * - Naslednja slika se najprej naloži v pomnilnik, sele nato se prehod zacne.
+ * - Prehod poganja kar casovnik zaslona (withFrameNanos), zato ne zavisi od sistemskih nastavitev
+ *   animacij (varcevanje energije, "animator duration scale" ipd. lahko vse animacije izklopijo).
+ * - Navaden preliv: stara slika ostane, nova se nanjo prelije.
+ * - Prek crnine: stara ugasne do crnine, nova se nato prizge.
  */
 @Composable
 fun Slideshow(
@@ -51,45 +55,67 @@ fun Slideshow(
         ImageRequest.Builder(context).data(uri).size(widthPx, heightPx).scale(scale).build()
 
     val ordered = remember(photos, shuffle) { if (shuffle) photos.shuffled() else photos }
-    var index by remember(ordered) { mutableIntStateOf(0) }
+    var shown by remember(ordered) { mutableStateOf(ordered.firstOrNull()) }
+    var previous by remember(ordered) { mutableStateOf<Uri?>(null) }
+    var progress by remember(ordered) { mutableFloatStateOf(1f) }
 
-    LaunchedEffect(ordered, intervalSec, widthPx, heightPx, scale) {
-        if (ordered.size > 1) {
-            while (true) {
-                delay(intervalSec * 1000L)
-                val next = (index + 1) % ordered.size
-                context.imageLoader.execute(request(ordered[next]))   // pocakaj, da je slika pripravljena
-                index = next
+    LaunchedEffect(ordered, intervalSec, widthPx, heightPx, scale, fadeMs) {
+        previous = null
+        progress = 1f
+        val current = shown
+        var idx = if (current == null) 0 else ordered.indexOf(current).coerceAtLeast(0)
+        while (ordered.size > 1) {
+            delay(intervalSec * 1000L)
+            idx = (idx + 1) % ordered.size
+            val next = ordered[idx]
+            context.imageLoader.execute(request(next))   // pocakaj, da je slika pripravljena
+            if (fadeMs <= 0) {
+                previous = null
+                shown = next
+                progress = 1f
+            } else {
+                previous = shown
+                shown = next
+                progress = 0f
+                val start = withFrameNanos { it }
+                while (progress < 1f) {
+                    val now = withFrameNanos { it }
+                    progress = ((now - start) / 1_000_000f / fadeMs).coerceIn(0f, 1f)
+                }
+                previous = null
             }
         }
     }
 
-    AnimatedContent(
-        targetState = ordered.getOrNull(index),
-        modifier = modifier,
-        transitionSpec = {
-            when {
-                fadeMs <= 0 -> fadeIn(tween(0)) togetherWith fadeOut(tween(0))
-                // Stara slika najprej ugasne do crnine, nova se nato prizge
-                fadeThroughBlack -> fadeIn(tween(fadeMs / 2, delayMillis = fadeMs / 2)) togetherWith
-                    fadeOut(tween(fadeMs / 2))
-                // Navaden preliv: eno slika ugaša, druga se prizge hkrati
-                else -> fadeIn(tween(fadeMs)) togetherWith fadeOut(tween(fadeMs))
+    // Spodaj stara slika (ce prehod poteka), zgoraj nova
+    val layers = listOfNotNull(previous, shown)
+    val hasPrev = layers.size > 1
+
+    Box(modifier.fillMaxSize()) {
+        for (u in layers) {
+            key(u) {
+                val isNew = u == shown
+                val req = remember(u, widthPx, heightPx, scale) { request(u) }
+                AsyncImage(
+                    model = req,
+                    contentDescription = null,
+                    contentScale = when (imageScale) {
+                        ImageScale.FIT -> ContentScale.Fit     // daljsa stranica do roba, ostalo crno
+                        ImageScale.FILL -> ContentScale.Crop
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            alpha = when {
+                                !hasPrev -> 1f
+                                fadeThroughBlack ->
+                                    if (isNew) ((progress - 0.5f) * 2f).coerceIn(0f, 1f)
+                                    else (1f - progress * 2f).coerceIn(0f, 1f)
+                                else -> if (isNew) progress else 1f
+                            }
+                        },
+                )
             }
-        },
-        label = "slideshow",
-    ) { uri ->
-        if (uri != null) {
-            val req = remember(uri, widthPx, heightPx, scale) { request(uri) }
-            AsyncImage(
-                model = req,
-                contentDescription = null,
-                contentScale = when (imageScale) {
-                    ImageScale.FIT -> ContentScale.Fit     // daljsa stranica do roba, ostalo crno
-                    ImageScale.FILL -> ContentScale.Crop
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
         }
     }
 }

@@ -166,6 +166,11 @@ fun SettingsScreen(
             )
             SwitchRow("Premikaj uro po zaslonu", s.oledMoveClock) { v -> onChange { it.copy(oledMoveClock = v) } }
             SwitchRow("Premikaj ikone spodaj", s.oledMoveBar) { v -> onChange { it.copy(oledMoveBar = v) } }
+            if (s.oledMoveClock) {
+                SliderRow("Obseg premika ure", s.oledRange, 0.1f..1f, { "${(it * 100).toInt()} %" }) { v ->
+                    onChange { it.copy(oledRange = v) }
+                }
+            }
             if (s.oledMoveClock || s.oledMoveBar) {
                 SliderRow("Premik na vsakih", s.oledMoveMinutes.toFloat(), 1f..30f, { "${it.toInt()} min" }) { v ->
                     onChange { it.copy(oledMoveMinutes = v.toInt()) }

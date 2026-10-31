@@ -47,10 +47,10 @@ fun ClockPosition.bias(): Pair<Float, Float> = when (this) {
 }
 
 /** OLED premik: ura se nakljucno odmakne od izbranega polozaja (r je nakljucno stevilo 0..1). */
-fun wander(base: Float, r: Float): Float = when {
-    base > 0.5f -> base - r * 0.6f
-    base < -0.5f -> base + r * 0.6f
-    else -> (r * 2f - 1f) * 0.6f
+fun wander(base: Float, r: Float, range: Float): Float = when {
+    base > 0.5f -> base - r * range
+    base < -0.5f -> base + r * range
+    else -> (r * 2f - 1f) * range
 }
 
 /** Cas, ki se osvezi vsako sekundo (ali vsako minuto, ce sekund ne prikazujemo). */

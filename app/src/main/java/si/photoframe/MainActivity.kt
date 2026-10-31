@@ -117,11 +117,11 @@ fun App(repo: SettingsRepository) {
         }
     }
 
-    val clockTarget = remember(oledStep, s.clockPosition, s.oledMoveClock) {
+    val clockTarget = remember(oledStep, s.clockPosition, s.oledMoveClock, s.oledRange) {
         val (bx, by) = s.clockPosition.bias()
         if (s.oledMoveClock) {
             val r = Random(oledStep * 7919L + 13L)
-            wander(bx, r.nextFloat()) to wander(by, r.nextFloat())
+            wander(bx, r.nextFloat(), s.oledRange) to wander(by, r.nextFloat(), s.oledRange)
         } else {
             bx to by
         }

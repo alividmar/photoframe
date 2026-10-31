@@ -21,3 +21,9 @@
 - Prehod med slikami: nastavljivo trajanje (0-6 s) in nacin "prek crnine". Zamenjan Crossfade z AnimatedContent.
 - Naslednja slika se pred prehodom naloži v pomnilnik (Coil imageLoader.execute), da se prehod vedno prikaže v celoti, tudi na počasnih napravah.
 - STANJE: ni prevedeno v tem okolju; preveri GitHub Actions.
+
+## 2026-10-31 — v0.3.3
+- Test v0.3.2: gradnja OK (samo opozorila o Node 20 in setup-java v4); prehod med slikami je bil se vedno trenuten; ura je na izbranem polozaju, OLED jo odmakne proti sredini (po zasnovi).
+- Prehod: lastna animacija prek withFrameNanos (neodvisna od sistemskih nastavitev animacij), dve plasti slik (stara spodaj, nova zgoraj z alpha).
+- Nastavitev "Obseg premika ure" (OLED).
+- Workflow: checkout@v6, setup-java@v5, setup-gradle@v5, upload-artifact@v6, runner ubuntu-24.04 (preverjeno v iskanju 2026-10-31). setup-gradle@v6 zahteva sprejem pogojev za komponento gradle-actions-caching, zato ostajamo na v5.

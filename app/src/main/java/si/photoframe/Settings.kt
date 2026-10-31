@@ -48,6 +48,8 @@ data class AppSettings(
     // Prehod med slikami
     val fadeMs: Int = 2000,
     val fadeThroughBlack: Boolean = false,
+    // Obseg OLED premika ure (0.1 = malo, 1.0 = cez cel zaslon)
+    val oledRange: Float = 0.6f,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "photoframe_settings")
@@ -75,6 +77,7 @@ class SettingsRepository(private val context: Context) {
     private val kBarSec = intPreferencesKey("bar_hide_sec")
     private val kFadeMs = intPreferencesKey("fade_ms")
     private val kFadeBlack = booleanPreferencesKey("fade_through_black")
+    private val kOledRange = floatPreferencesKey("oled_range")
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { read(it) }
 
@@ -111,6 +114,7 @@ class SettingsRepository(private val context: Context) {
             barHideSec = p[kBarSec] ?: d.barHideSec,
             fadeMs = p[kFadeMs] ?: d.fadeMs,
             fadeThroughBlack = p[kFadeBlack] ?: d.fadeThroughBlack,
+            oledRange = p[kOledRange] ?: d.oledRange,
         )
     }
 
@@ -137,5 +141,6 @@ class SettingsRepository(private val context: Context) {
         p[kBarSec] = s.barHideSec
         p[kFadeMs] = s.fadeMs
         p[kFadeBlack] = s.fadeThroughBlack
+        p[kOledRange] = s.oledRange
     }
 }
