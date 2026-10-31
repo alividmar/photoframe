@@ -68,6 +68,9 @@ class RadioService : Service() {
                 } else {
                     RadioState.station.value = Station(id, name, url)
                     RadioState.error.value = null
+                    // Postaja ima lahko svoj samodejni izklop; ce ga nima, ostane morebiten ze nastavljen casovnik
+                    val minutes = intent.getIntExtra(EXTRA_MIN, 0)
+                    if (minutes > 0) applyTimer(minutes)
                     RadioState.status.value = RadioStatus.LOADING
                     retryCount = 0
                     handler.removeCallbacks(retryRunnable)
@@ -241,9 +244,11 @@ class RadioService : Service() {
         private fun running(): Boolean =
             RadioState.status.value == RadioStatus.LOADING || RadioState.status.value == RadioStatus.PLAYING
 
+        /** Zazene postajo; ce ima nastavljen samodejni izklop (minute), se ta uporabi. */
         fun play(context: Context, st: Station) {
             val i = Intent(context, RadioService::class.java)
                 .setAction(ACTION_PLAY)
+                .putExtra(EXTRA_MIN, st.autoOffMin)
                 .putExtra(EXTRA_ID, st.id)
                 .putExtra(EXTRA_NAME, st.name)
                 .putExtra(EXTRA_URL, st.url)

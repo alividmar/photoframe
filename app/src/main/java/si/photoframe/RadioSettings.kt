@@ -6,6 +6,8 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -134,6 +136,9 @@ private fun StationRow(st: Station, playing: Boolean, onToggle: () -> Unit, onEd
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(st.name, color = Color.White)
         Text(st.url, color = Color.Gray, fontSize = 11.sp, maxLines = 1)
+        if (st.autoOffMin > 0) {
+            Text("Samodejni izklop po ${st.autoOffMin} min", color = Color(0xFF69F0AE), fontSize = 11.sp)
+        }
         Row {
             TextButton(onClick = onToggle) { Text(if (playing) "Ustavi" else "Poslusaj") }
             TextButton(onClick = onEdit) { Text("Uredi") }
@@ -173,6 +178,7 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Sta
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var url by remember { mutableStateOf(initial?.url ?: "") }
     var icon by remember { mutableStateOf(initial?.iconUrl ?: "") }
+    var offText by remember { mutableStateOf((initial?.autoOffMin ?: 0).toString()) }
     val u = url.trim()
     val valid = u.startsWith("http://", true) || u.startsWith("https://", true)
 
@@ -213,6 +219,13 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Sta
                     value = icon, onValueChange = { icon = it },
                     label = { Text("Ikona: povezava (neobvezno)") }, singleLine = true,
                 )
+                OutlinedTextField(
+                    value = offText,
+                    onValueChange = { offText = it.filter { c -> c.isDigit() }.take(3) },
+                    label = { Text("Samodejni izklop po (minut, 0 = brez)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (icon.isNotBlank()) {
                         AsyncImage(
@@ -229,7 +242,10 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Sta
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(Station(id, name.trim().ifBlank { u }, u, icon.trim())) },
+                onClick = {
+                    val off = (offText.toIntOrNull() ?: 0).coerceIn(0, 720)
+                    onSave(Station(id, name.trim().ifBlank { u }, u, icon.trim(), off))
+                },
                 enabled = valid,
             ) { Text("Shrani") }
         },

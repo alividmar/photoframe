@@ -5,7 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
-data class Station(val id: String, val name: String, val url: String, val iconUrl: String = "")
+data class Station(val id: String, val name: String, val url: String, val iconUrl: String = "", val autoOffMin: Int = 0)
 
 fun newStationId(): String = UUID.randomUUID().toString().take(8)
 
@@ -41,7 +41,7 @@ object StationJson {
     fun encode(list: List<Station>): String {
         val arr = JSONArray()
         for (s in list) {
-            arr.put(JSONObject().put("id", s.id).put("name", s.name).put("url", s.url).put("icon", s.iconUrl))
+            arr.put(JSONObject().put("id", s.id).put("name", s.name).put("url", s.url).put("icon", s.iconUrl).put("off", s.autoOffMin))
         }
         return arr.toString()
     }
@@ -59,6 +59,7 @@ object StationJson {
                     name = o.optString("name").ifBlank { url },
                     url = url,
                     iconUrl = o.optString("icon"),
+                    autoOffMin = o.optInt("off", 0),
                 ),
             )
         }
@@ -82,18 +83,22 @@ object PlaylistIO {
         var icon = ""
         val attr = Regex("[\\w-]+=\"[^\"]*\"")
         val logo = Regex("tvg-logo=\"([^\"]*)\"")
+        val timerRe = Regex("x-timer=\"(\\d+)\"")
+        var timer = 0
         for (l in lines) {
             when {
                 l.startsWith("#EXTINF", ignoreCase = true) -> {
                     icon = logo.find(l)?.groupValues?.get(1).orEmpty()
+                    timer = timerRe.find(l)?.groupValues?.get(1)?.toIntOrNull() ?: 0
                     // Atribute (tvg-logo="...") odstranimo, da vejica v povezavi ne zmoti imena
                     title = l.replace(attr, "").substringAfter(',', "").trim().ifEmpty { null }
                 }
                 l.startsWith("#") -> Unit
                 isUrl(l) -> {
-                    out.add(Station(newStationId(), title ?: nameFromUrl(l), l, icon))
+                    out.add(Station(newStationId(), title ?: nameFromUrl(l), l, icon, timer))
                     title = null
                     icon = ""
+                    timer = 0
                 }
             }
         }
@@ -127,7 +132,8 @@ object PlaylistIO {
         append("#EXTM3U\n")
         for (s in list) {
             val logo = if (isUrl(s.iconUrl)) " tvg-logo=\"${s.iconUrl}\"" else ""
-            append("#EXTINF:-1").append(logo).append(',').append(s.name.replace('\n', ' ')).append('\n')
+            val off = if (s.autoOffMin > 0) " x-timer=\"${s.autoOffMin}\"" else ""
+            append("#EXTINF:-1").append(logo).append(off).append(',').append(s.name.replace('\n', ' ')).append('\n')
             append(s.url).append('\n')
         }
     }

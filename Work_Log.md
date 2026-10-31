@@ -45,3 +45,7 @@
 - Ikone postaj: polje iconUrl (povezava ali slika iz naprave, kopirana v pomnilnik aplikacije); M3U atribut tvg-logo pri uvozu/izvozu. Privzete postaje: Val 202, Radio Koper, Radio Capris, Radio Rock (naslove in ikone je podal uporabnik; DuckDuckGo povezave sem dekodiral v izvorne).
 - Glasnost ob zatemnitvi: sistemska glasnost predvajanja se enkrat nastavi ob vklopu nocnega nacina.
 - docs/postaje.m3u: seznam za uvoz v ze nameščeno aplikacijo.
+
+## 2026-10-31 — v0.4.2
+- Test v0.4.1: vse deluje, razen Radio Rock (naslov je enak tistemu v aplikaciji; drugega zanesljivega naslova nisem nasel).
+- Samodejni izklop po postaji: Station.autoOffMin (nastavitev v urejanju postaje), ob pritisku na postajo servis sam nastavi casovnik. Uvoz/izvoz M3U z atributom x-timer.
