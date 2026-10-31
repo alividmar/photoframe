@@ -31,13 +31,24 @@ import androidx.compose.ui.unit.sp
  * Radio in alarm za zdaj samo pokazeta obvestilo.
  */
 @Composable
-fun BottomBar(modifier: Modifier = Modifier, onSettings: () -> Unit, onSoon: (String) -> Unit) {
+fun BottomBar(
+    modifier: Modifier = Modifier,
+    shiftX: Float = 0.5f,   // 0..1: vodoravni premik ikon (OLED)
+    shiftY: Float = 0f,     // 0..1: navpicni premik ikon (OLED)
+    onSettings: () -> Unit,
+    onSoon: (String) -> Unit,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000))))
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(
+                start = 16.dp + 48.dp * shiftX,
+                end = 16.dp + 48.dp * (1f - shiftX),
+                top = 8.dp,
+                bottom = 8.dp + 24.dp * shiftY,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         for (i in 1..4) {

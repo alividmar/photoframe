@@ -10,10 +10,10 @@ android {
 
     defaultConfig {
         applicationId = "si.photoframe"
-        minSdk = 26
+        minSdk = 21
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.2.0"
+        versionCode = 2
+        versionName = "0.3.0"
     }
 
     buildTypes {
@@ -22,6 +22,7 @@ android {
         }
     }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true   // java.time na Androidu 5-7
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -34,6 +35,7 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.2")
     implementation(platform("androidx.compose:compose-bom:2024.09.03"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")

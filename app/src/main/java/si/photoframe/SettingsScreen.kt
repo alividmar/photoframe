@@ -146,6 +146,21 @@ fun SettingsScreen(
             if (s.clockStyle != ClockStyle.OFF) {
                 SwitchRow("Prikazi sekunde", s.showSeconds) { v -> onChange { it.copy(showSeconds = v) } }
             }
+
+            Title("OLED zascita")
+            SwitchRow("Premikaj uro po zaslonu", s.oledMoveClock) { v -> onChange { it.copy(oledMoveClock = v) } }
+            SwitchRow("Premikaj ikone spodaj", s.oledMoveBar) { v -> onChange { it.copy(oledMoveBar = v) } }
+            if (s.oledMoveClock || s.oledMoveBar) {
+                SliderRow("Premik na vsakih", s.oledMoveMinutes.toFloat(), 1f..30f, { "${it.toInt()} min" }) { v ->
+                    onChange { it.copy(oledMoveMinutes = v.toInt()) }
+                }
+            }
+            SwitchRow("Skrij ikone, pokazi jih na dotik", s.barAutoHide) { v -> onChange { it.copy(barAutoHide = v) } }
+            if (s.barAutoHide) {
+                SliderRow("Skrij po", s.barHideSec.toFloat(), 3f..60f, { "${it.toInt()} s" }) { v ->
+                    onChange { it.copy(barHideSec = v.toInt()) }
+                }
+            }
         }
     }
 }

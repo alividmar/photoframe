@@ -38,6 +38,12 @@ data class AppSettings(
     val showDate: Boolean = true,
     val digitalFont: DigitalFont = DigitalFont.SANS,
     val analogFace: AnalogFace = AnalogFace.TICKS,
+    // OLED zascita
+    val oledMoveClock: Boolean = false,
+    val oledMoveBar: Boolean = false,
+    val oledMoveMinutes: Int = 3,
+    val barAutoHide: Boolean = true,
+    val barHideSec: Int = 10,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "photoframe_settings")
@@ -58,6 +64,11 @@ class SettingsRepository(private val context: Context) {
     private val kDate = booleanPreferencesKey("show_date")
     private val kFont = stringPreferencesKey("digital_font")
     private val kFace = stringPreferencesKey("analog_face")
+    private val kOledClock = booleanPreferencesKey("oled_move_clock")
+    private val kOledBar = booleanPreferencesKey("oled_move_bar")
+    private val kOledMin = intPreferencesKey("oled_move_minutes")
+    private val kBarHide = booleanPreferencesKey("bar_auto_hide")
+    private val kBarSec = intPreferencesKey("bar_hide_sec")
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { read(it) }
 
@@ -87,6 +98,11 @@ class SettingsRepository(private val context: Context) {
             showDate = p[kDate] ?: d.showDate,
             digitalFont = enumOf(p[kFont], d.digitalFont),
             analogFace = enumOf(p[kFace], d.analogFace),
+            oledMoveClock = p[kOledClock] ?: d.oledMoveClock,
+            oledMoveBar = p[kOledBar] ?: d.oledMoveBar,
+            oledMoveMinutes = p[kOledMin] ?: d.oledMoveMinutes,
+            barAutoHide = p[kBarHide] ?: d.barAutoHide,
+            barHideSec = p[kBarSec] ?: d.barHideSec,
         )
     }
 
@@ -106,5 +122,10 @@ class SettingsRepository(private val context: Context) {
         p[kDate] = s.showDate
         p[kFont] = s.digitalFont.name
         p[kFace] = s.analogFace.name
+        p[kOledClock] = s.oledMoveClock
+        p[kOledBar] = s.oledMoveBar
+        p[kOledMin] = s.oledMoveMinutes
+        p[kBarHide] = s.barAutoHide
+        p[kBarSec] = s.barHideSec
     }
 }

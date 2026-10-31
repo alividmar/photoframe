@@ -5,6 +5,8 @@ Android aplikacija za tablet: digitalni foto okvir z uro, radiem in alarmom. APK
 
 ## Odgovori uporabnika
 - Tehnologija: Kotlin (nativni Android), Jetpack Compose
+- Najnizja podprta verzija: Android 5.0 (API 21)
+- OLED nastavitve: ura se premika po zaslonu na N minut; ikone se premikajo ali skrijejo in pokazejo na dotik
 - Naprava: tablet
 - Viri slik (vsi v prvi verziji): lokalni spomin, NAS (SMB ali WebDAV), Dropbox, Google Drive/Photos, Mega, OneDrive
 - Ura: digitalna ali analogna, prek slik; nastavitve barve, ozadja ure, sloga

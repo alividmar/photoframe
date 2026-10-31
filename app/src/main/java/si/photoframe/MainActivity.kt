@@ -29,6 +29,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.BiasAlignment
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.delay
+import kotlin.random.Random
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -77,15 +89,68 @@ fun App(repo: SettingsRepository) {
     val scope = rememberCoroutineScope()
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var photos by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var touchCount by remember { mutableIntStateOf(0) }
+    var barVisible by remember { mutableStateOf(true) }
+    var oledStep by remember { mutableIntStateOf(0) }
 
     // Ko se spremeni mapa, na novo poiscemo slike
     LaunchedEffect(s.folderUri) {
         photos = s.folderUri?.let { PhotoScanner.scan(context, Uri.parse(it)) } ?: emptyList()
     }
 
+    // Ikone: ob dotiku se pokazejo, po nekaj sekundah se spet skrijejo
+    LaunchedEffect(touchCount, showSettings, s.barAutoHide, s.barHideSec) {
+        barVisible = true
+        if (s.barAutoHide && !showSettings) {
+            delay(s.barHideSec * 1000L)
+            barVisible = false
+        }
+    }
+
+    // OLED: vsakih N minut nov polozaj ure in ikon
+    LaunchedEffect(s.oledMoveClock, s.oledMoveBar, s.oledMoveMinutes) {
+        if (s.oledMoveClock || s.oledMoveBar) {
+            while (true) {
+                delay(s.oledMoveMinutes * 60_000L)
+                oledStep++
+            }
+        }
+    }
+
+    val clockTarget = remember(oledStep) {
+        val r = Random(oledStep * 7919L + 13L)
+        (r.nextFloat() * 1.8f - 0.9f) to (r.nextFloat() * 1.8f - 0.9f)
+    }
+    val biasX by animateFloatAsState(clockTarget.first, tween(2500), label = "clockX")
+    val biasY by animateFloatAsState(clockTarget.second, tween(2500), label = "clockY")
+    val clockAlignment: Alignment =
+        if (s.oledMoveClock) BiasAlignment(biasX, biasY) else s.clockPosition.alignment()
+
+    val barShift = remember(oledStep, s.oledMoveBar) {
+        if (s.oledMoveBar) {
+            val r = Random(oledStep * 104729L + 7L)
+            r.nextFloat() to r.nextFloat()
+        } else {
+            0.5f to 0f
+        }
+    }
+
     BackHandler(enabled = showSettings) { showSettings = false }
 
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .pointerInput(Unit) {
+                // Opazujemo dotike, ne da bi jih porabili
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.changes.any { it.pressed && !it.previousPressed }) touchCount++
+                    }
+                }
+            },
+    ) {
         if (photos.isNotEmpty()) {
             Slideshow(
                 photos = photos,
@@ -101,15 +166,23 @@ fun App(repo: SettingsRepository) {
         ClockOverlay(
             s = s,
             modifier = Modifier
-                .align(s.clockPosition.alignment())
+                .align(clockAlignment)
                 .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 96.dp),
         )
 
-        BottomBar(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            onSettings = { showSettings = true },
-            onSoon = { msg -> Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() },
-        )
+        AnimatedVisibility(
+            visible = barVisible,
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            BottomBar(
+                shiftX = barShift.first,
+                shiftY = barShift.second,
+                onSettings = { showSettings = true },
+                onSoon = { msg -> Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() },
+            )
+        }
 
         if (showSettings) {
             SettingsScreen(
