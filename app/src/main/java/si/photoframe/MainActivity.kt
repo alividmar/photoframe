@@ -50,6 +50,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.draw.alpha
 import androidx.core.content.ContextCompat
 import java.time.LocalTime
+import android.content.Context
+import android.media.AudioManager
+import coil.Coil
+import coil.ImageLoader
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -63,6 +67,11 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         hideSystemBars()
+
+        // Nalaganje slik prek https tudi na starih napravah (ikone postaj)
+        Coil.setImageLoader(
+            ImageLoader.Builder(applicationContext).okHttpClient { SecureHttp.client(applicationContext) }.build(),
+        )
 
         val repo = SettingsRepository(applicationContext)
         setContent {
@@ -143,7 +152,9 @@ fun App(repo: SettingsRepository) {
     // Napaka radia (povezava ni uspela niti po vec poskusih)
     LaunchedEffect(radioStatus) {
         if (radioStatus == RadioStatus.ERROR) {
-            Toast.makeText(context, "Radia ni mogoce predvajati. Preveri povezavo ali naslov postaje.", Toast.LENGTH_LONG).show()
+            val detail = RadioState.error.value
+            val msg = "Radia ni mogoce predvajati" + if (detail.isNullOrBlank()) "." else ": $detail"
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -157,6 +168,16 @@ fun App(repo: SettingsRepository) {
         while (true) {
             delay(30_000L)
             if (nightActive && !inNightWindow(s.nightStartMin, s.nightEndMin)) nightActive = false
+        }
+    }
+
+    // Glasnost: ob vklopu nocnega nacina enkrat nastavimo sistemsko glasnost predvajanja
+    LaunchedEffect(nightActive) {
+        if (nightActive && s.nightVolumeEnabled) {
+            val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val level = (max * s.nightVolumePct / 100f).toInt().coerceIn(0, max)
+            runCatching { am.setStreamVolume(AudioManager.STREAM_MUSIC, level, 0) }
         }
     }
 

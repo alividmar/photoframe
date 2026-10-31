@@ -1,0 +1,9 @@
+#EXTM3U
+#EXTINF:-1 tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6bHTwsHkZ-JRo963AWzAzSGxjIf6zkuvbGsWf5D35MTUzvvUyRuUjrgA&s=10",Val 202
+http://mp3.rtvslo.si/val202
+#EXTINF:-1 tvg-logo="https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/173250939/logo.jpg",Radio Koper
+http://mp3.rtvslo.si:8000/rakp
+#EXTINF:-1 tvg-logo="https://www.radiocapris.si/data/images/streams/live.png?t=3",Radio Capris
+https://stream.exit.si/live
+#EXTINF:-1 tvg-logo="https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcS-yqwLjXEC16erbNTF5E8XmeEg-cv2npPiKw8LBW7R_33jZV8l",Radio Rock
+https://radio.svet24.si/Radio1Rock-v-zivo

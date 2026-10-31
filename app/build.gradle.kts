@@ -12,8 +12,8 @@ android {
         applicationId = "si.photoframe"
         minSdk = 21
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.4.0"
+        versionCode = 7
+        versionName = "0.4.1"
     }
 
     buildTypes {
@@ -48,4 +48,6 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("androidx.media3:media3-exoplayer:1.7.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.7.1")
+    implementation("androidx.media3:media3-datasource-okhttp:1.7.1")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

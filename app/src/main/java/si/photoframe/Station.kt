@@ -5,18 +5,31 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
-data class Station(val id: String, val name: String, val url: String)
+data class Station(val id: String, val name: String, val url: String, val iconUrl: String = "")
 
 fun newStationId(): String = UUID.randomUUID().toString().take(8)
 
-/**
- * Privzete postaje. Vpisana je samo postaja, katere naslov sem nasel v javnem viru
- * (Wikipedia, polje "Webcast" za Val 202; direktorij postaj kaze isti streznik mp3.rtvslo.si).
- * Ostale ikone so prazne: dodaj jih v Nastavitvah ali uvozi seznam (M3U/PLS).
- */
+/** Privzete postaje (naslove in ikone je podal uporabnik). Veljajo samo pri prvem zagonu. */
 object DefaultStations {
-    val list = listOf(Station("val202", "Val 202", "http://mp3.rtvslo.si/val202"))
-    val slots = listOf("val202", "", "", "")
+    val list = listOf(
+        Station(
+            "val202", "Val 202", "http://mp3.rtvslo.si/val202",
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6bHTwsHkZ-JRo963AWzAzSGxjIf6zkuvbGsWf5D35MTUzvvUyRuUjrgA&s=10",
+        ),
+        Station(
+            "rakp", "Radio Koper", "http://mp3.rtvslo.si:8000/rakp",
+            "https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/173250939/logo.jpg",
+        ),
+        Station(
+            "capris", "Radio Capris", "https://stream.exit.si/live",
+            "https://www.radiocapris.si/data/images/streams/live.png?t=3",
+        ),
+        Station(
+            "rock", "Radio Rock", "https://radio.svet24.si/Radio1Rock-v-zivo",
+            "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcS-yqwLjXEC16erbNTF5E8XmeEg-cv2npPiKw8LBW7R_33jZV8l",
+        ),
+    )
+    val slots = listOf("val202", "rakp", "capris", "rock")
 }
 
 object SlotCodec {
@@ -28,7 +41,7 @@ object StationJson {
     fun encode(list: List<Station>): String {
         val arr = JSONArray()
         for (s in list) {
-            arr.put(JSONObject().put("id", s.id).put("name", s.name).put("url", s.url))
+            arr.put(JSONObject().put("id", s.id).put("name", s.name).put("url", s.url).put("icon", s.iconUrl))
         }
         return arr.toString()
     }
@@ -45,6 +58,7 @@ object StationJson {
                     id = o.optString("id").ifBlank { newStationId() },
                     name = o.optString("name").ifBlank { url },
                     url = url,
+                    iconUrl = o.optString("icon"),
                 ),
             )
         }
@@ -65,14 +79,21 @@ object PlaylistIO {
     private fun parseM3u(lines: List<String>): List<Station> {
         val out = ArrayList<Station>()
         var title: String? = null
+        var icon = ""
+        val attr = Regex("[\\w-]+=\"[^\"]*\"")
+        val logo = Regex("tvg-logo=\"([^\"]*)\"")
         for (l in lines) {
             when {
-                l.startsWith("#EXTINF", ignoreCase = true) ->
-                    title = l.substringAfter(',', "").trim().ifEmpty { null }
+                l.startsWith("#EXTINF", ignoreCase = true) -> {
+                    icon = logo.find(l)?.groupValues?.get(1).orEmpty()
+                    // Atribute (tvg-logo="...") odstranimo, da vejica v povezavi ne zmoti imena
+                    title = l.replace(attr, "").substringAfter(',', "").trim().ifEmpty { null }
+                }
                 l.startsWith("#") -> Unit
                 isUrl(l) -> {
-                    out.add(Station(newStationId(), title ?: nameFromUrl(l), l))
+                    out.add(Station(newStationId(), title ?: nameFromUrl(l), l, icon))
                     title = null
+                    icon = ""
                 }
             }
         }
@@ -105,7 +126,8 @@ object PlaylistIO {
     fun toM3u(list: List<Station>): String = buildString {
         append("#EXTM3U\n")
         for (s in list) {
-            append("#EXTINF:-1,").append(s.name.replace('\n', ' ')).append('\n')
+            val logo = if (isUrl(s.iconUrl)) " tvg-logo=\"${s.iconUrl}\"" else ""
+            append("#EXTINF:-1").append(logo).append(',').append(s.name.replace('\n', ' ')).append('\n')
             append(s.url).append('\n')
         }
     }

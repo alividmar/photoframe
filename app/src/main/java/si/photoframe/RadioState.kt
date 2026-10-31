@@ -8,5 +8,6 @@ enum class RadioStatus { STOPPED, LOADING, PLAYING, ERROR }
 object RadioState {
     val station = MutableStateFlow<Station?>(null)
     val status = MutableStateFlow(RadioStatus.STOPPED)
+    val error = MutableStateFlow<String?>(null)   // zadnja napaka predvajanja (za diagnostiko)
     val timerEndsAt = MutableStateFlow(0L)   // cas v ms (System.currentTimeMillis); 0 = brez casovnika
 }

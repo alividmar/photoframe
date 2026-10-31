@@ -2,7 +2,7 @@
 
 Android aplikacija za tablet: diaprojekcija slik z uro. Radio, alarm in oblacni viri pridejo v naslednjih fazah (glej Project_Brief.md).
 
-## Kaj zdaj dela (faze 1-3, verzija 0.4.0)
+## Kaj zdaj dela (faze 1-3, verzija 0.4.1)
 - Deluje od Androida 5.0 naprej
 - OLED zascita: ura skace po zaslonu, ikone se premikajo, skrijejo po nekaj sekundah in se pokazejo na dotik
 - Diaprojekcija slik iz mape na napravi (z podmapami), mehek prehod, nakljucni vrstni red

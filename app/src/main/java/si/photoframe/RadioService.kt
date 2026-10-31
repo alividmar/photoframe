@@ -21,7 +21,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 
@@ -67,6 +67,7 @@ class RadioService : Service() {
                     finish(RadioStatus.ERROR)
                 } else {
                     RadioState.station.value = Station(id, name, url)
+                    RadioState.error.value = null
                     RadioState.status.value = RadioStatus.LOADING
                     retryCount = 0
                     handler.removeCallbacks(retryRunnable)
@@ -88,11 +89,8 @@ class RadioService : Service() {
     }
 
     private fun createPlayer(): ExoPlayer {
-        val http = DefaultHttpDataSource.Factory()
-            .setAllowCrossProtocolRedirects(true)   // http -> https preusmeritve
-            .setUserAgent("PhotoFrame/0.4")
-            .setConnectTimeoutMs(15_000)
-            .setReadTimeoutMs(15_000)
+        // OkHttp s prilagojenim preverjanjem certifikatov (da https deluje tudi na starih napravah)
+        val http = OkHttpDataSource.Factory(SecureHttp.client(this)).setUserAgent("PhotoFrame/0.4")
         val sources = DefaultMediaSourceFactory(this).setDataSourceFactory(http)
         val p = ExoPlayer.Builder(this)
             .setMediaSourceFactory(sources)
@@ -124,10 +122,22 @@ class RadioService : Service() {
             }
 
             override fun onPlayerError(error: PlaybackException) {
+                RadioState.error.value = describe(error)
                 scheduleRetry()
             }
         })
         return p
+    }
+
+    /** Kratek opis napake: koda ExoPlayerja + najglobji vzrok (npr. SSLHandshakeException ...). */
+    private fun describe(e: PlaybackException): String {
+        var last: Throwable = e
+        var depth = 0
+        while (last.cause != null && depth < 8) {
+            last = last.cause!!
+            depth++
+        }
+        return "${e.errorCodeName}: ${last.javaClass.simpleName} ${last.message.orEmpty()}".trim().take(220)
     }
 
     private fun scheduleRetry() {
