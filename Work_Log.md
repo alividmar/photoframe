@@ -16,3 +16,8 @@
 ## 2026-10-31 — v0.3.1
 - Prikaz slik: nov nastavek `imageScale` (FIT privzeto = cela slika, daljsa stranica do roba, ostalo crno; FILL = napolni in obreze). Star kljuc `crop_to_fill` je opuscen, zato se vsi vrnejo na FIT.
 - Polozaj ure: vedno prek BiasAlignment; OLED premik je zdaj v okolici izbranega polozaja (prej je ignoriral izbiro). Predogled v nastavitvah kaze izbrani polozaj.
+
+## 2026-10-31 — v0.3.2
+- Prehod med slikami: nastavljivo trajanje (0-6 s) in nacin "prek crnine". Zamenjan Crossfade z AnimatedContent.
+- Naslednja slika se pred prehodom naloži v pomnilnik (Coil imageLoader.execute), da se prehod vedno prikaže v celoti, tudi na počasnih napravah.
+- STANJE: ni prevedeno v tem okolju; preveri GitHub Actions.

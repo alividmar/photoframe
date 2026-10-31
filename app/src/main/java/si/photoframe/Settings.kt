@@ -45,6 +45,9 @@ data class AppSettings(
     val oledMoveMinutes: Int = 3,
     val barAutoHide: Boolean = true,
     val barHideSec: Int = 10,
+    // Prehod med slikami
+    val fadeMs: Int = 2000,
+    val fadeThroughBlack: Boolean = false,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "photoframe_settings")
@@ -70,6 +73,8 @@ class SettingsRepository(private val context: Context) {
     private val kOledMin = intPreferencesKey("oled_move_minutes")
     private val kBarHide = booleanPreferencesKey("bar_auto_hide")
     private val kBarSec = intPreferencesKey("bar_hide_sec")
+    private val kFadeMs = intPreferencesKey("fade_ms")
+    private val kFadeBlack = booleanPreferencesKey("fade_through_black")
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { read(it) }
 
@@ -104,6 +109,8 @@ class SettingsRepository(private val context: Context) {
             oledMoveMinutes = p[kOledMin] ?: d.oledMoveMinutes,
             barAutoHide = p[kBarHide] ?: d.barAutoHide,
             barHideSec = p[kBarSec] ?: d.barHideSec,
+            fadeMs = p[kFadeMs] ?: d.fadeMs,
+            fadeThroughBlack = p[kFadeBlack] ?: d.fadeThroughBlack,
         )
     }
 
@@ -128,5 +135,7 @@ class SettingsRepository(private val context: Context) {
         p[kOledMin] = s.oledMoveMinutes
         p[kBarHide] = s.barAutoHide
         p[kBarSec] = s.barHideSec
+        p[kFadeMs] = s.fadeMs
+        p[kFadeBlack] = s.fadeThroughBlack
     }
 }

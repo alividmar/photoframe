@@ -161,6 +161,8 @@ fun App(repo: SettingsRepository) {
                 intervalSec = s.intervalSec,
                 shuffle = s.shuffle,
                 imageScale = s.imageScale,
+                fadeMs = s.fadeMs,
+                fadeThroughBlack = s.fadeThroughBlack,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {

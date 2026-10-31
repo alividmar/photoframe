@@ -102,6 +102,12 @@ fun SettingsScreen(
                 listOf(ImageScale.FIT to "Cela slika, ostalo crno", ImageScale.FILL to "Napolni zaslon (obreze)"),
                 s.imageScale,
             ) { v -> onChange { it.copy(imageScale = v) } }
+            SliderRow("Trajanje prehoda", s.fadeMs / 1000f, 0f..6f, { if (it < 0.1f) "brez" else "%.1f s".format(it) }) { v ->
+                onChange { it.copy(fadeMs = (v * 1000).toInt()) }
+            }
+            SwitchRow("Prehod prek crnine (milejse pri veliki razliki svetlosti)", s.fadeThroughBlack) { v ->
+                onChange { it.copy(fadeThroughBlack = v) }
+            }
 
             Title("Ura")
             ChipRow(
