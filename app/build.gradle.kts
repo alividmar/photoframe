@@ -12,8 +12,8 @@ android {
         applicationId = "si.photoframe"
         minSdk = 21
         targetSdk = 35
-        versionCode = 10
-        versionName = "0.5.1"
+        versionCode = 11
+        versionName = "0.6.0"
     }
 
     buildTypes {
@@ -31,6 +31,16 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    packaging {
+        resources {
+            // Knjiznice (BouncyCastle, jcifs-ng) vsebujejo podvojene metapodatke
+            excludes += setOf(
+                "META-INF/DEPENDENCIES", "META-INF/LICENSE", "META-INF/LICENSE.txt",
+                "META-INF/NOTICE", "META-INF/NOTICE.txt", "META-INF/INDEX.LIST",
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+            )
+        }
     }
 }
 
@@ -50,4 +60,6 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-hls:1.7.1")
     implementation("androidx.media3:media3-datasource-okhttp:1.7.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("eu.agno3.jcifs:jcifs-ng:2.1.10")
+    implementation("org.slf4j:slf4j-api:1.7.36")
 }

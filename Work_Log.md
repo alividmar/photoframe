@@ -66,3 +66,12 @@
 - Spodnja vrstica: ce pri izbrani velikosti vse ne gre v eno vrstico, se ikone razporedijo v dve (postaje / alarmi in nastavitve) in ostanejo povecane (prej se je velikost samodejno zmanjsala, zato povecava na ozjih zaslonih ni bila vidna).
 - Nastavitve v zavihkih (Slike, Ura, Zaslon, Radio, Alarmi, Spanje).
 - Novo v Radio: "Ko radio igra: skrij uro" in "Ko radio igra: ugasni zaslon" (ob katerem koli casu, ne le ponoci).
+
+## 2026-11-01 — v0.6.0 (faza 5: NAS)
+- Test v0.5.1: vse deluje; zaslon ni ugasnil, ker je bil sistemski cas mirovanja predolg.
+- Viri slik v omrezju: SMB (jcifs-ng 2.1.10, SMB 2.02 do 3.1.1, izbirno SMB1) in WebDAV (lastna koda prek OkHttp, PROPFIND, Basic prijava; izbirno zaupanje samopodpisanemu certifikatu).
+- Slike z NAS-a se v aplikaciji predstavijo kot nas://<id vira>/<pot>; Coil bralnik NasFetcher jih prebere. Slike iz vseh vklopljenih virov in iz mape v napravi se zdruzijo v eno diaprojekcijo; iskanje poteka v ozadju in se sproti dodaja.
+- Gumb "Preizkusi" pri viru izpise stevilo slik ali napako (NasClient.test).
+- Opozorila: SMB na Androidu 5 s knjiznico jcifs-ng ni preizkusen; jcifs-ng je pod licenco LGPL; gesla so v pomnilniku aplikacije brez sifriranja; slike z NAS-a se ne shranjujejo na disk (vsakic znova prenos prek omrezja).
+- Gradnja: dodan jcifs-ng, slf4j-api, izkljucitve podvojenih META-INF datotek.
+- STANJE: ni prevedeno v tem okolju.

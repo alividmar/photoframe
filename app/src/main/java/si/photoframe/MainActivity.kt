@@ -76,7 +76,10 @@ class MainActivity : ComponentActivity() {
 
         // Nalaganje slik prek https tudi na starih napravah (ikone postaj)
         Coil.setImageLoader(
-            ImageLoader.Builder(applicationContext).okHttpClient { SecureHttp.client(applicationContext) }.build(),
+            ImageLoader.Builder(applicationContext)
+                .okHttpClient { SecureHttp.client(applicationContext) }
+                .components { add(NasFetcher.Factory(applicationContext)) }
+                .build(),
         )
 
         val repo = SettingsRepository(applicationContext)
@@ -173,8 +176,26 @@ fun App(repo: SettingsRepository) {
     }
 
     // Ko se spremeni mapa, na novo poiscemo slike
-    LaunchedEffect(s.folderUri) {
-        photos = s.folderUri?.let { PhotoScanner.scan(context, Uri.parse(it)) } ?: emptyList()
+    // Slike iz mape v napravi in iz vseh vklopljenih virov v omrezju (NAS); sproti dodajamo
+    LaunchedEffect(s.folderUri, s.sources) {
+        NasRegistry.update(s.sources)
+        val all = ArrayList<Uri>()
+        photos = emptyList()
+        s.folderUri?.let {
+            all += PhotoScanner.scan(context, Uri.parse(it))
+            photos = all.toList()
+        }
+        for (src in s.sources) {
+            if (!src.enabled) continue
+            try {
+                all += NasClient.scan(context, src)
+                photos = all.toList()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Toast.makeText(context, "${src.name}: ${NasClient.describe(e)}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     // Alarmi: ob vsaki spremembi nastavitev ponovno razporedimo
@@ -311,7 +332,10 @@ fun App(repo: SettingsRepository) {
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                EmptyHint(hasFolder = s.folderUri != null, onOpenSettings = { showSettings = true })
+                EmptyHint(
+                    hasFolder = s.folderUri != null || s.sources.any { it.enabled },
+                    onOpenSettings = { showSettings = true },
+                )
             }
         }
 

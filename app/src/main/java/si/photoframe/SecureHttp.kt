@@ -29,6 +29,23 @@ object SecureHttp {
             cached ?: build(context.applicationContext).also { cached = it }
         }
 
+    /**
+     * Odjemalec, ki sprejme KATERIKOLI certifikat (tudi samopodpisanega). Uporabi se samo za vir,
+     * pri katerem je uporabnik to izrecno vklopil (npr. NAS z lastnim certifikatom v domacem omrezju).
+     */
+    fun insecureClient(context: Context): OkHttpClient {
+        val trustAll = object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) = Unit
+            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) = Unit
+            override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+        }
+        val ssl = SSLContext.getInstance("TLS").apply { init(null, arrayOf<TrustManager>(trustAll), null) }
+        return client(context).newBuilder()
+            .sslSocketFactory(ssl.socketFactory, trustAll)
+            .hostnameVerifier { _, _ -> true }
+            .build()
+    }
+
     private fun build(context: Context): OkHttpClient {
         val system = trustManagerFor(null)
         val extra = runCatching {

@@ -73,6 +73,8 @@ data class AppSettings(
     // Med predvajanjem radia (ob kateremkoli casu)
     val radioHideClock: Boolean = false,
     val radioScreenOff: Boolean = false,
+    // Viri slik v omrezju (NAS)
+    val sources: List<PhotoSource> = emptyList(),
 )
 
 private val Context.dataStore by preferencesDataStore(name = "photoframe_settings")
@@ -120,6 +122,7 @@ class SettingsRepository(private val context: Context) {
     private val kBarScale = floatPreferencesKey("bar_scale")
     private val kRadioHideClock = booleanPreferencesKey("radio_hide_clock")
     private val kRadioScreenOff = booleanPreferencesKey("radio_screen_off")
+    private val kSources = stringPreferencesKey("photo_sources_json")
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { read(it) }
 
@@ -176,6 +179,7 @@ class SettingsRepository(private val context: Context) {
             barScale = p[kBarScale] ?: d.barScale,
             radioHideClock = p[kRadioHideClock] ?: d.radioHideClock,
             radioScreenOff = p[kRadioScreenOff] ?: d.radioScreenOff,
+            sources = p[kSources]?.let { SourceCodec.decode(it) } ?: d.sources,
         )
     }
 
@@ -222,5 +226,6 @@ class SettingsRepository(private val context: Context) {
         p[kBarScale] = s.barScale
         p[kRadioHideClock] = s.radioHideClock
         p[kRadioScreenOff] = s.radioScreenOff
+        p[kSources] = SourceCodec.encode(s.sources)
     }
 }

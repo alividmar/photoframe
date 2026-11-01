@@ -108,6 +108,7 @@ fun SettingsScreen(
                 onChange { it.copy(fadeThroughBlack = v) }
             }
 
+                NasSettingsSection(s, onChange)
             }
             if (tab == 1) {
             // Predogled ure
