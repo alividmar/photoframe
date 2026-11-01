@@ -24,7 +24,7 @@ class NasFetcher(
 
     override suspend fun fetch(): FetchResult = withContext(Dispatchers.IO) {
         val src = NasRegistry.get(data.authority.orEmpty()) ?: throw IOException("Vir slik ni na voljo")
-        val stream = NasClient.open(appContext, src, data)
+        val stream = RemoteCache.stream(appContext, data.toString()) { NasClient.open(appContext, src, data) }
         SourceResult(
             source = ImageSource(stream.source().buffer(), options.context),
             mimeType = null,

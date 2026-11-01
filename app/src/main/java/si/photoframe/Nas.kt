@@ -26,7 +26,7 @@ import java.io.StringReader
 import java.util.Properties
 import java.util.concurrent.ConcurrentHashMap
 
-enum class SourceType { SMB, WEBDAV }
+enum class SourceType { SMB, WEBDAV, MEGA, GDRIVE, DROPBOX, ONEDRIVE }
 
 /**
  * Vir slik v omrezju. address: SMB = streznik (npr. 192.168.1.10), WebDAV = celoten naslov (https://...).
@@ -45,6 +45,8 @@ data class PhotoSource(
     val smb1: Boolean = false,
     val insecureTls: Boolean = false,
     val enabled: Boolean = true,
+    val clientId: String = "",       // Dropbox app key, OneDrive client ID, Google Drive API kljuc
+    val refreshToken: String = "",   // trajni zeton po prijavi (Dropbox, OneDrive)
 )
 
 object SourceCodec {
@@ -54,7 +56,8 @@ object SourceCodec {
             arr.put(
                 JSONObject().put("id", s.id).put("type", s.type.name).put("name", s.name).put("address", s.address)
                     .put("path", s.path).put("domain", s.domain).put("user", s.user).put("password", s.password)
-                    .put("smb1", s.smb1).put("insecure", s.insecureTls).put("on", s.enabled),
+                    .put("smb1", s.smb1).put("insecure", s.insecureTls).put("on", s.enabled)
+                    .put("client", s.clientId).put("refresh", s.refreshToken),
             )
         }
         return arr.toString()
@@ -79,6 +82,8 @@ object SourceCodec {
                     smb1 = o.optBoolean("smb1", false),
                     insecureTls = o.optBoolean("insecure", false),
                     enabled = o.optBoolean("on", true),
+                    clientId = o.optString("client"),
+                    refreshToken = o.optString("refresh"),
                 ),
             )
         }
@@ -96,6 +101,10 @@ object NasRegistry {
     }
 
     fun get(id: String): PhotoSource? = map[id]
+
+    /** Klice ga prijava, ko dobi nov trajni zeton; aplikacija ga shrani v nastavitve. */
+    @Volatile
+    var onUpdate: ((PhotoSource) -> Unit)? = null
 }
 
 object NasClient {
@@ -111,6 +120,10 @@ object NasClient {
             when (src.type) {
                 SourceType.WEBDAV -> scanWebDav(context, src, limit)
                 SourceType.SMB -> scanSmb(src, limit)
+                SourceType.MEGA -> MegaClient.scan(context, src, limit)
+                SourceType.GDRIVE -> DriveClient.scan(context, src, limit)
+                SourceType.DROPBOX -> DropboxClient.scan(context, src, limit)
+                SourceType.ONEDRIVE -> OneDriveClient.scan(context, src, limit)
             }
         }
 
@@ -150,6 +163,10 @@ object NasClient {
             val url = "smb://" + smbHost(src) + "/" + data.pathSegments.joinToString("/")
             SmbFileInputStream(SmbFile(url, smbContext(src)))
         }
+        SourceType.MEGA -> MegaClient.open(context, src, data)
+        SourceType.GDRIVE -> DriveClient.open(context, src, data)
+        SourceType.DROPBOX -> DropboxClient.open(context, src, data)
+        SourceType.ONEDRIVE -> OneDriveClient.open(context, src, data)
     }
 
     // ---------------- WebDAV ----------------

@@ -75,3 +75,11 @@
 - Opozorila: SMB na Androidu 5 s knjiznico jcifs-ng ni preizkusen; jcifs-ng je pod licenco LGPL; gesla so v pomnilniku aplikacije brez sifriranja; slike z NAS-a se ne shranjujejo na disk (vsakic znova prenos prek omrezja).
 - Gradnja: dodan jcifs-ng, slf4j-api, izkljucitve podvojenih META-INF datotek.
 - STANJE: ni prevedeno v tem okolju.
+
+## 2026-11-01 — v0.7.0 (faza 6+7: oblak)
+- Uporabnik trenutno nima dostopa do lokalnega omrezja, zato prednostno oblak.
+- Preverjeno z iskanjem: Dropbox PKCE brez preusmeritve (uporabnik prepise kodo; token_access_type=offline; osvezitev brez skrivnosti); Microsoft koda za napravo (consumers, public client, Files.Read + offline_access); Google Photos Library API od 31. 3. 2025 vrne samo vsebino, ki jo je ustvarila aplikacija (readonly obseg odstranjen) -> Google Photos ni mogoc.
+- Novi viri: MEGA (javna povezava mape, lastna implementacija: AES-ECB za kljuce, AES-CBC za atribute, AES-CTR za vsebino), Google Drive (javna mapa + API kljuc), Dropbox (list_folder recursive, download), OneDrive (Graph children, items/{id}/content).
+- Predpomnilnik slik z omrezja na disku (privzeto 300 MB, nastavljivo, gumb za ciscenje); velja tudi za NAS.
+- Trajni zeton Microsoft se ob rotaciji shrani prek NasRegistry.onUpdate.
+- STANJE: ni prevedeno v tem okolju; MEGA kriptografija je napisana po opisu protokola in ni preizkusena na streznikih.

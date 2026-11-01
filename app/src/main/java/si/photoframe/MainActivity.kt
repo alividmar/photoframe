@@ -177,7 +177,21 @@ fun App(repo: SettingsRepository) {
 
     // Ko se spremeni mapa, na novo poiscemo slike
     // Slike iz mape v napravi in iz vseh vklopljenih virov v omrezju (NAS); sproti dodajamo
-    LaunchedEffect(s.folderUri, s.sources) {
+    // Znani viri in nastavitev predpomnilnika (brez ponovnega iskanja ob osvezitvi zetonov)
+    LaunchedEffect(s.sources, s.cacheMb) {
+        NasRegistry.update(s.sources)
+        RemoteCache.limitMb = s.cacheMb
+    }
+    LaunchedEffect(Unit) {
+        // Nov trajni zeton (npr. Microsoft) se shrani v nastavitve
+        NasRegistry.onUpdate = { updated ->
+            scope.launch {
+                repo.update { cur -> cur.copy(sources = cur.sources.map { if (it.id == updated.id) updated else it }) }
+            }
+        }
+    }
+    val scanKey = s.sources.map { it.copy(refreshToken = "") }
+    LaunchedEffect(s.folderUri, scanKey) {
         NasRegistry.update(s.sources)
         val all = ArrayList<Uri>()
         photos = emptyList()

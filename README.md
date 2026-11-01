@@ -2,7 +2,7 @@
 
 Android aplikacija za tablet: diaprojekcija slik z uro. Radio, alarm in oblacni viri pridejo v naslednjih fazah (glej Project_Brief.md).
 
-## Kaj zdaj dela (faze 1-5, verzija 0.6.0)
+## Kaj zdaj dela (faze 1-7, verzija 0.7.0)
 - Deluje od Androida 5.0 naprej
 - OLED zascita: ura skace po zaslonu, ikone se premikajo, skrijejo po nekaj sekundah in se pokazejo na dotik
 - Diaprojekcija slik iz mape na napravi (z podmapami), mehek prehod, nakljucni vrstni red
@@ -11,7 +11,7 @@ Android aplikacija za tablet: diaprojekcija slik z uro. Radio, alarm in oblacni 
 - Radio: 4 ikone v spodnji vrstici (postaje izbereš v Nastavitvah), predvajanje v ozadju, časovnik izklopa, uvoz/izvoz M3U/PLS
 - Spanje: ko po izbrani uri začneš radio, se zaslon zatemni, diaprojekcija se izklopi in prikaže se enobarvno ozadje
 - Alarmi: dva ločena alarma (ura, dnevi, ton ali radio, glasnost zbujanja); ikoni v spodnji vrstici ju vklopita/izklopita
-- Viri v omrežju (NAS): SMB in WebDAV poleg mape v napravi (Nastavitve → Slike)
+- Viri v omrežju in oblaku: SMB, WebDAV, MEGA (javna povezava mape), Google Drive (javna mapa + API ključ), Dropbox, OneDrive (Nastavitve → Slike)
 - Spodnja vrstica: povečane ikone, gumb za nastavitve
 
 ## Kako dobis APK (brez Android Studia)

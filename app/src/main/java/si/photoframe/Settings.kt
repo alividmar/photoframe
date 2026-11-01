@@ -75,6 +75,7 @@ data class AppSettings(
     val radioScreenOff: Boolean = false,
     // Viri slik v omrezju (NAS)
     val sources: List<PhotoSource> = emptyList(),
+    val cacheMb: Int = 300,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "photoframe_settings")
@@ -123,6 +124,7 @@ class SettingsRepository(private val context: Context) {
     private val kRadioHideClock = booleanPreferencesKey("radio_hide_clock")
     private val kRadioScreenOff = booleanPreferencesKey("radio_screen_off")
     private val kSources = stringPreferencesKey("photo_sources_json")
+    private val kCacheMb = intPreferencesKey("remote_cache_mb")
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { read(it) }
 
@@ -180,6 +182,7 @@ class SettingsRepository(private val context: Context) {
             radioHideClock = p[kRadioHideClock] ?: d.radioHideClock,
             radioScreenOff = p[kRadioScreenOff] ?: d.radioScreenOff,
             sources = p[kSources]?.let { SourceCodec.decode(it) } ?: d.sources,
+            cacheMb = p[kCacheMb] ?: d.cacheMb,
         )
     }
 
@@ -227,5 +230,6 @@ class SettingsRepository(private val context: Context) {
         p[kRadioHideClock] = s.radioHideClock
         p[kRadioScreenOff] = s.radioScreenOff
         p[kSources] = SourceCodec.encode(s.sources)
+        p[kCacheMb] = s.cacheMb
     }
 }
