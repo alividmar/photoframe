@@ -18,6 +18,7 @@ enum class ClockStyle { DIGITAL, ANALOG, OFF }
 enum class ClockPosition { TOP_LEFT, TOP_RIGHT, CENTER, BOTTOM_LEFT, BOTTOM_RIGHT }
 enum class DigitalFont { SANS, SERIF, MONO }
 enum class AnalogFace { TICKS, DOTS, NONE }
+enum class NightTrigger { SCHEDULE, RADIO }   // zatemnitev po urniku ali sele ob zagonu radia
 enum class ImageScale { FIT, FILL }   // FIT = cela slika, ostalo crno; FILL = napolni zaslon (obreze)
 
 /** Vse nastavitve aplikacije na enem mestu. Barve so shranjene kot ARGB (Long). */
@@ -76,6 +77,8 @@ data class AppSettings(
     // Viri slik v omrezju (NAS)
     val sources: List<PhotoSource> = emptyList(),
     val cacheMb: Int = 300,
+    val nightTrigger: NightTrigger = NightTrigger.SCHEDULE,
+    val nightRelockSec: Int = 30,   // ponoci se zaslon po toliko sekundah brez dotika spet ugasne
 )
 
 private val Context.dataStore by preferencesDataStore(name = "photoframe_settings")
@@ -125,6 +128,8 @@ class SettingsRepository(private val context: Context) {
     private val kRadioScreenOff = booleanPreferencesKey("radio_screen_off")
     private val kSources = stringPreferencesKey("photo_sources_json")
     private val kCacheMb = intPreferencesKey("remote_cache_mb")
+    private val kNightTrigger = stringPreferencesKey("night_trigger")
+    private val kNightRelock = intPreferencesKey("night_relock_sec")
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { read(it) }
 
@@ -183,6 +188,8 @@ class SettingsRepository(private val context: Context) {
             radioScreenOff = p[kRadioScreenOff] ?: d.radioScreenOff,
             sources = p[kSources]?.let { SourceCodec.decode(it) } ?: d.sources,
             cacheMb = p[kCacheMb] ?: d.cacheMb,
+            nightTrigger = enumOf(p[kNightTrigger], d.nightTrigger),
+            nightRelockSec = p[kNightRelock] ?: d.nightRelockSec,
         )
     }
 
@@ -231,5 +238,7 @@ class SettingsRepository(private val context: Context) {
         p[kRadioScreenOff] = s.radioScreenOff
         p[kSources] = SourceCodec.encode(s.sources)
         p[kCacheMb] = s.cacheMb
+        p[kNightTrigger] = s.nightTrigger.name
+        p[kNightRelock] = s.nightRelockSec
     }
 }

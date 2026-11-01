@@ -305,24 +305,38 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Sta
     )
 }
 
-/** Nastavitve spanja: kdaj se po zagonu radia zaslon zatemni in kaj se takrat prikaze. */
+/** Nastavitve spanja: kdaj se zaslon zatemni ali ugasne in kaj se takrat prikaze. */
 @Composable
 internal fun NightSettingsSection(s: AppSettings, onChange: Change) {
     Title("Spanje (vecerna zatemnitev)")
     Text(
-        "Ko po izbrani uri zacnes predvajati radio, se zaslon zatemni. Konec: ob jutranji uri ali ob zvonjenju alarma (ali takoj, ko radio ustavis, ce izklopis spodnjo moznost).",
+        "Med izbranima urama se zaslon zatemni. Zatemnitev se lahko vklopi po urniku (vedno ob uri, tudi ko igrajo samo slike) " +
+            "ali sele, ko po tej uri zacnes radio. Konec: jutranja ura ali zvonjenje alarma.",
         color = Color.LightGray,
         fontSize = 12.sp,
     )
     SwitchRow("Vklopljeno", s.nightEnabled) { v -> onChange { it.copy(nightEnabled = v) } }
     if (s.nightEnabled) {
-        TimeRow("Zatemni, ce radio zacnes po", s.nightStartMin) { m -> onChange { it.copy(nightStartMin = m) } }
+        TimeRow("Zatemni od", s.nightStartMin) { m -> onChange { it.copy(nightStartMin = m) } }
         TimeRow("Jutranja ura (konec)", s.nightEndMin) { m -> onChange { it.copy(nightEndMin = m) } }
-        SwitchRow("Ostane zatemnjeno do jutra, tudi ko se radio ustavi", s.nightStayUntilMorning) { v ->
-            onChange { it.copy(nightStayUntilMorning = v) }
+        Label("Sprozilec")
+        ChipRow(
+            listOf(NightTrigger.SCHEDULE to "Po urniku", NightTrigger.RADIO to "Ob zagonu radia"),
+            s.nightTrigger,
+        ) { v -> onChange { it.copy(nightTrigger = v) } }
+        if (s.nightTrigger == NightTrigger.RADIO) {
+            SwitchRow("Ostane zatemnjeno do jutra, tudi ko se radio ustavi", s.nightStayUntilMorning) { v ->
+                onChange { it.copy(nightStayUntilMorning = v) }
+            }
         }
-        SwitchRow("Ugasni zaslon (sistem ga ugasne po casu mirovanja)", s.nightScreenOff) { v ->
+        SwitchRow("Ugasni zaslon (zaklene tablico); radio igra naprej", s.nightScreenOff) { v ->
             onChange { it.copy(nightScreenOff = v) }
+        }
+        if (s.nightScreenOff) {
+            ScreenOffControls(s)
+            SliderRow("Ponovni izklop po (sekund brez dotika)", s.nightRelockSec.toFloat(), 10f..300f, { "${it.toInt()} s" }) { v ->
+                onChange { it.copy(nightRelockSec = v.toInt()) }
+            }
         }
         SwitchRow("Skrij uro ponoci", s.nightHideClock) { v -> onChange { it.copy(nightHideClock = v) } }
         SwitchRow("Izklopi diaprojekcijo (enobarvno ozadje)", s.nightPhotosOff) { v ->
@@ -338,7 +352,7 @@ internal fun NightSettingsSection(s: AppSettings, onChange: Change) {
         SliderRow("Svetlost ure in ikon", s.nightClockAlpha, 0.1f..1f, { "${(it * 100).toInt()} %" }) { v ->
             onChange { it.copy(nightClockAlpha = v) }
         }
-        SwitchRow("Ob zatemnitvi nastavi glasnost", s.nightVolumeEnabled) { v ->
+        SwitchRow("Ko ponoci zacne igrati radio, nastavi glasnost", s.nightVolumeEnabled) { v ->
             onChange { it.copy(nightVolumeEnabled = v) }
         }
         if (s.nightVolumeEnabled) {
@@ -346,6 +360,35 @@ internal fun NightSettingsSection(s: AppSettings, onChange: Change) {
                 onChange { it.copy(nightVolumePct = v.toInt()) }
             }
         }
+    }
+}
+
+/** Skrbniske pravice za pravi izklop zaslona (zaklep). Brez njih se zaslon ugasne samo po sistemskem casu mirovanja. */
+@Composable
+private fun ScreenOffControls(s: AppSettings) {
+    val context = LocalContext.current
+    var active by remember { mutableStateOf(ScreenAdmin.isActive(context)) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        active = ScreenAdmin.isActive(context)
+        ScreenWake.schedule(context, s)
+    }
+    Text(
+        if (active) {
+            "Skrbniske pravice so aktivne: zaslon se ugasne ob uri in ponoci po neaktivnosti. Ce ima tablica zaklep zaslona, ga je po prebujenju treba odkleniti."
+        } else {
+            "Skrbniske pravice niso aktivne: zaslon se bo ugasnil samo po sistemskem casu mirovanja. Za pravi izklop jih aktiviraj."
+        },
+        color = if (active) Color(0xFF69F0AE) else Color(0xFFFF8A65),
+        fontSize = 12.sp,
+    )
+    if (!active) {
+        OutlinedButton(onClick = { launcher.launch(ScreenAdmin.activationIntent(context)) }) { Text("Aktiviraj skrbniske pravice") }
+    } else {
+        OutlinedButton(onClick = {
+            ScreenAdmin.remove(context)
+            active = false
+            ScreenWake.schedule(context, s)
+        }) { Text("Odstrani skrbniske pravice (potrebno pred odstranitvijo aplikacije)") }
     }
 }
 

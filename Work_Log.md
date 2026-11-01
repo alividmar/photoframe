@@ -83,3 +83,12 @@
 - Predpomnilnik slik z omrezja na disku (privzeto 300 MB, nastavljivo, gumb za ciscenje); velja tudi za NAS.
 - Trajni zeton Microsoft se ob rotaciji shrani prek NasRegistry.onUpdate.
 - STANJE: ni prevedeno v tem okolju; MEGA kriptografija je napisana po opisu protokola in ni preizkusena na streznikih.
+
+## 2026-11-01 — v0.7.1
+- Test v0.7.0: MEGA deluje (javna povezava mape). Zatemnitev po uri ni delovala, ker se je nocni nacin vklopil samo ob zagonu radia; izklop zaslona je deloval le prek sistemskega casa mirovanja.
+- Nocni nacin ima zdaj sprozilec: "po urniku" (privzeto; deluje tudi brez radia) ali "ob zagonu radia".
+- Pravi izklop zaslona: skrbnik naprave (samo force-lock), DevicePolicyManager.lockNow(). Po urniku se zaslon ugasne po nightRelockSec sekundah brez dotika; ce ga uporabnik ponoci prebudi, se po isti neaktivnosti spet ugasne. Radio igra naprej v servisu v ospredju do izteka casovnika.
+- Zbujanje ob jutranji uri prek AlarmManager (RTC_WAKEUP, exact ce dovoljeno) in WakeLock z ACQUIRE_CAUSES_WAKEUP, ker se ob izklopljenem zaslonu notranji casovniki ustavijo. Dovoljenji SCHEDULE_EXACT_ALARM in USE_EXACT_ALARM.
+- Brez skrbniskih pravic ostane star nacin (zaslon ugasne po sistemskem casu mirovanja).
+- Glasnost ob zatemnitvi se nastavi, ko ponoci zacne igrati radio.
+- STANJE: ni prevedeno v tem okolju; zaklep in zbujanje nista preizkusena na napravi.

@@ -231,12 +231,18 @@ fun App(repo: SettingsRepository) {
         }
     }
 
-    // Spanje: ce radio zacne igrati v nocnem oknu, vklopimo zatemnitev. Konec: jutranja ura, alarm,
-    // ali (ce uporabnik tako zeli) takoj ob ustavitvi radia.
-    LaunchedEffect(radioOn, ringing != null, s.nightEnabled, s.nightStartMin, s.nightEndMin, s.nightStayUntilMorning) {
+    // Spanje (zatemnitev): po urniku (vedno ob uri) ali sele ob zagonu radia v nocnem oknu.
+    // Konec: jutranja ura ali alarm (ali, pri sprozilcu "radio", takoj ob ustavitvi radia, ce uporabnik tako zeli).
+    LaunchedEffect(radioOn, ringing != null, s.nightEnabled, s.nightTrigger, s.nightStartMin, s.nightEndMin, s.nightStayUntilMorning) {
         if (ringing != null || !s.nightEnabled) {
             nightActive = false
             return@LaunchedEffect
+        }
+        if (s.nightTrigger == NightTrigger.SCHEDULE) {
+            while (true) {
+                nightActive = inNightWindow(s.nightStartMin, s.nightEndMin)
+                delay(20_000L)
+            }
         }
         if (radioOn && !nightActive && inNightWindow(s.nightStartMin, s.nightEndMin)) nightActive = true
         if (!radioOn && !s.nightStayUntilMorning) {
@@ -249,9 +255,20 @@ fun App(repo: SettingsRepository) {
         }
     }
 
-    // Glasnost: ob vklopu nocnega nacina enkrat nastavimo sistemsko glasnost predvajanja
-    LaunchedEffect(nightActive) {
-        if (nightActive && s.nightVolumeEnabled) {
+    // Ugasni zaslon ponoci: zbujanje ob jutranji uri (alarm) in ponovni zaklep po neaktivnosti
+    LaunchedEffect(s.nightEnabled, s.nightScreenOff, s.nightEndMin) {
+        ScreenWake.schedule(context, s)
+    }
+    LaunchedEffect(nightActive, s.nightScreenOff, touchCount, showSettings, ringing != null) {
+        if (nightActive && s.nightScreenOff && !showSettings && ringing == null) {
+            delay(s.nightRelockSec * 1000L)
+            ScreenAdmin.lockNow(context)
+        }
+    }
+
+    // Glasnost: ko ponoci zacne igrati radio, enkrat nastavimo sistemsko glasnost predvajanja
+    LaunchedEffect(nightActive && radioOn) {
+        if (nightActive && radioOn && s.nightVolumeEnabled) {
             val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             val level = (max * s.nightVolumePct / 100f).toInt().coerceIn(0, max)
