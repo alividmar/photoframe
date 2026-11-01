@@ -36,3 +36,33 @@
 - Spanje: ce radio zacne igrati po izbrani uri (privzeto 22:00-06:00), zaslon se zatemni (svetlost okna), diaprojekcija se izklopi in prikaze se izbrana barva, ura in ikone so zatemnjene.
 - usesCleartextTraffic=true (veliko postaj uporablja http).
 - STANJE: ni prevedeno v tem okolju; preveri GitHub Actions. Stream ni bil preizkusen z napravo.
+
+## 2026-10-31 — v0.4.1
+- Test v0.4.0: radio deluje; https povezave (stream.exit.si/live, radio.svet24.si/Radio1Rock-v-zivo) ne.
+- Vzrok ni potrjen. Najverjetnejse: stara naprava ne zaupa novejsim certifikatom ali ne podpira nastavitev TLS. Ukrepi:
+  - predvajalnik in nalaganje ikon zdaj uporabljata OkHttp (SecureHttp.kt): najprej sistemski seznam zaupanja, nato vgrajeni Mozilla koreni (res/raw/mozilla_roots.pem iz certifi 2026.02.25, 137 certifikatov, ISRG Root X1 preverjen po SHA-256);
+  - ob napaki toast pokaze kodo in vzrok (npr. SSLHandshakeException) za diagnostiko.
+- Ikone postaj: polje iconUrl (povezava ali slika iz naprave, kopirana v pomnilnik aplikacije); M3U atribut tvg-logo pri uvozu/izvozu. Privzete postaje: Val 202, Radio Koper, Radio Capris, Radio Rock (naslove in ikone je podal uporabnik; DuckDuckGo povezave sem dekodiral v izvorne).
+- Glasnost ob zatemnitvi: sistemska glasnost predvajanja se enkrat nastavi ob vklopu nocnega nacina.
+- docs/postaje.m3u: seznam za uvoz v ze nameščeno aplikacijo.
+
+## 2026-10-31 — v0.4.2
+- Test v0.4.1: vse deluje, razen Radio Rock (naslov je enak tistemu v aplikaciji; drugega zanesljivega naslova nisem nasel).
+- Samodejni izklop po postaji: Station.autoOffMin (nastavitev v urejanju postaje), ob pritisku na postajo servis sam nastavi casovnik. Uvoz/izvoz M3U z atributom x-timer.
+
+## 2026-10-31 — v0.5.0 (faza 4: alarm)
+- Test v0.4.2: radio, casovnik in zatemnitev delujejo; po koncu casovnika so se vrnile slike in svetlost (po zasnovi: zatemnitev se je koncala z radiem). Spremenjeno: privzeto ostane zatemnitev do jutranje ure (nightStayUntilMorning).
+- Radio Rock: nov naslov https://live.radio.si/Radio1Rock?t=1793477993539 (uporabnik potrdil, da deluje; parameter t je verjetno samo predpomnilniski zeton).
+- Dva loceni alarma: AlarmManager.setAlarmClock (brez dovoljenja za natancne alarme), AlarmReceiver (tudi ob zagonu naprave), AlarmService (ton prek MediaPlayer ali radio prek RadioService; zasilni ton, ce radio v 30 s ne zacne; samodejni stop po 30 min), celozaslonski AlarmOverlay, obvestilo s fullScreenIntent.
+- Glasnost zbujanja po alarmu: STREAM_ALARM (ton) oziroma STREAM_MUSIC (radio).
+- Privzeti izklop radia (defaultTimerMin); izklop po postaji ima prednost; velja samo ob svezem zagonu radia.
+- Nocni nacin: ostane do jutra, izbirno ugasne zaslon (odstrani FLAG_KEEP_SCREEN_ON), izbirno skrije uro; alarm nocni nacin konca.
+- Spodnja vrstica: povecava ikon (barScale, privzeto 2.0), samodejno omejena glede na sirino zaslona.
+- STANJE: ni prevedeno v tem okolju; alarmi niso preizkuseni na napravi.
+
+## 2026-11-01 — v0.5.1
+- Test v0.5.0: Radio Capris in Radio Rock ne igrata, v gumbih ni ikon postaj; uporabnik zeli vecje ikone, izklop ure in izklop zaslona med radiem. Vzroka za https napako nisem mogel potrditi (v 0.4.1 je Capris deloval).
+- Dodano: gumb "Diagnostika" pri vsaki postaji (StreamTest.kt): odpre tok in ikono z istim odjemalcem, izpise kodo, TLS, izdajatelja certifikata, napako, cas naprave; rezultat je mogoce kopirati.
+- Spodnja vrstica: ce pri izbrani velikosti vse ne gre v eno vrstico, se ikone razporedijo v dve (postaje / alarmi in nastavitve) in ostanejo povecane (prej se je velikost samodejno zmanjsala, zato povecava na ozjih zaslonih ni bila vidna).
+- Nastavitve v zavihkih (Slike, Ura, Zaslon, Radio, Alarmi, Spanje).
+- Novo v Radio: "Ko radio igra: skrij uro" in "Ko radio igra: ugasni zaslon" (ob katerem koli casu, ne le ponoci).

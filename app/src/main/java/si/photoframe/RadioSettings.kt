@@ -1,11 +1,26 @@
 package si.photoframe
 
 import android.app.TimePickerDialog
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import java.io.File
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +59,8 @@ internal fun RadioSettingsSection(s: AppSettings, onChange: Change) {
     val playing by RadioState.station.collectAsState()
     var editing by remember { mutableStateOf<Station?>(null) }
     var adding by remember { mutableStateOf(false) }
+    var diagText by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
@@ -74,6 +91,18 @@ internal fun RadioSettingsSection(s: AppSettings, onChange: Change) {
     }
 
     Title("Radio")
+    SliderRow("Privzeti izklop radia", s.defaultTimerMin.toFloat(), 0f..240f, { if (it < 1f) "brez" else "${it.toInt()} min" }) { v ->
+        onChange { it.copy(defaultTimerMin = v.toInt()) }
+    }
+    Text(
+        "Ko radio zacne igrati, se izklop nastavi sam (postaja z lastnim izklopom ima prednost). Z ikono casovnika ga lahko popravis.",
+        color = Color.LightGray,
+        fontSize = 12.sp,
+    )
+    SwitchRow("Ko radio igra: skrij uro", s.radioHideClock) { v -> onChange { it.copy(radioHideClock = v) } }
+    SwitchRow("Ko radio igra: ugasni zaslon (sistem ga ugasne po casu mirovanja)", s.radioScreenOff) { v ->
+        onChange { it.copy(radioScreenOff = v) }
+    }
     Label("Ikone v spodnji vrstici")
     for (i in 0 until 4) SlotPicker(i, s, onChange)
 
@@ -88,6 +117,10 @@ internal fun RadioSettingsSection(s: AppSettings, onChange: Change) {
             playing = isPlaying,
             onToggle = { if (isPlaying) RadioService.stop(context) else RadioService.play(context, st) },
             onEdit = { editing = st },
+            onDiag = {
+                diagText = "Preverjam ..."
+                scope.launch { diagText = StreamTest.run(context, st) }
+            },
             onDelete = {
                 onChange { cur ->
                     cur.copy(
@@ -108,36 +141,59 @@ internal fun RadioSettingsSection(s: AppSettings, onChange: Change) {
         OutlinedButton(onClick = { exportLauncher.launch("postaje.m3u") }) { Text("Izvozi (M3U)") }
     }
 
+    diagText?.let { text ->
+        AlertDialog(
+            onDismissRequest = { diagText = null },
+            title = { Text("Diagnostika postaje") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    SelectionContainer { Text(text, fontSize = 12.sp) }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    cm.setPrimaryClip(ClipData.newPlainText("diagnostika", text))
+                    Toast.makeText(context, "Kopirano.", Toast.LENGTH_SHORT).show()
+                }) { Text("Kopiraj") }
+            },
+            dismissButton = { TextButton(onClick = { diagText = null }) { Text("Zapri") } },
+        )
+    }
+
     if (adding) {
-        StationDialog(null, { adding = false }) { name, url ->
+        StationDialog(null, { adding = false }) { st ->
             adding = false
-            val u = url.trim()
-            onChange { cur -> cur.copy(stations = cur.stations + Station(newStationId(), name.trim().ifBlank { u }, u)) }
+            onChange { cur -> cur.copy(stations = cur.stations + st) }
         }
     }
-    editing?.let { st ->
-        StationDialog(st, { editing = null }) { name, url ->
+    editing?.let { old ->
+        StationDialog(old, { editing = null }) { st ->
             editing = null
-            val u = url.trim()
-            onChange { cur ->
-                cur.copy(
-                    stations = cur.stations.map { x ->
-                        if (x.id == st.id) x.copy(name = name.trim().ifBlank { u }, url = u) else x
-                    },
-                )
-            }
+            onChange { cur -> cur.copy(stations = cur.stations.map { x -> if (x.id == old.id) st else x }) }
         }
     }
 }
 
 @Composable
-private fun StationRow(st: Station, playing: Boolean, onToggle: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun StationRow(
+    st: Station,
+    playing: Boolean,
+    onToggle: () -> Unit,
+    onEdit: () -> Unit,
+    onDiag: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(st.name, color = Color.White)
         Text(st.url, color = Color.Gray, fontSize = 11.sp, maxLines = 1)
+        if (st.autoOffMin > 0) {
+            Text("Samodejni izklop po ${st.autoOffMin} min", color = Color(0xFF69F0AE), fontSize = 11.sp)
+        }
         Row {
             TextButton(onClick = onToggle) { Text(if (playing) "Ustavi" else "Poslusaj") }
             TextButton(onClick = onEdit) { Text("Uredi") }
+            TextButton(onClick = onDiag) { Text("Diagnostika") }
             TextButton(onClick = onDelete) { Text("Izbrisi") }
         }
     }
@@ -168,17 +224,41 @@ private fun SlotPicker(index: Int, s: AppSettings, onChange: Change) {
 }
 
 @Composable
-private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
+private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Station) -> Unit) {
+    val context = LocalContext.current
+    val id = remember { initial?.id ?: newStationId() }
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var url by remember { mutableStateOf(initial?.url ?: "") }
+    var icon by remember { mutableStateOf(initial?.iconUrl ?: "") }
+    var offText by remember { mutableStateOf((initial?.autoOffMin ?: 0).toString()) }
     val u = url.trim()
     val valid = u.startsWith("http://", true) || u.startsWith("https://", true)
+
+    // Slika iz naprave se skopira v pomnilnik aplikacije (tako ni potrebna dolga povezava)
+    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            val file = File(context.filesDir, "icon_${id}_${System.currentTimeMillis()}.img")
+            val ok = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    file.outputStream().use { out -> input.copyTo(out) }
+                }
+            }.isSuccess
+            if (ok) {
+                icon = "file://" + file.absolutePath
+            } else {
+                Toast.makeText(context, "Slike ni bilo mogoce prebrati.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initial == null) "Nova postaja" else "Uredi postajo") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
                     label = { Text("Ime") }, singleLine = true,
@@ -187,9 +267,40 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Str
                     value = url, onValueChange = { url = it },
                     label = { Text("Povezava (http:// ali https://)") }, singleLine = true,
                 )
+                OutlinedTextField(
+                    value = icon, onValueChange = { icon = it },
+                    label = { Text("Ikona: povezava (neobvezno)") }, singleLine = true,
+                )
+                OutlinedTextField(
+                    value = offText,
+                    onValueChange = { offText = it.filter { c -> c.isDigit() }.take(3) },
+                    label = { Text("Samodejni izklop po (minut, 0 = brez)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (icon.isNotBlank()) {
+                        AsyncImage(
+                            model = icon,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
+                        )
+                    }
+                    OutlinedButton(onClick = { pickImage.launch(arrayOf("image/*")) }) { Text("Izberi sliko ...") }
+                    if (icon.isNotBlank()) TextButton(onClick = { icon = "" }) { Text("Odstrani") }
+                }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(name, url) }, enabled = valid) { Text("Shrani") } },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val off = (offText.toIntOrNull() ?: 0).coerceIn(0, 720)
+                    onSave(Station(id, name.trim().ifBlank { u }, u, icon.trim(), off))
+                },
+                enabled = valid,
+            ) { Text("Shrani") }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Preklici") } },
     )
 }
@@ -199,7 +310,7 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Str
 internal fun NightSettingsSection(s: AppSettings, onChange: Change) {
     Title("Spanje (vecerna zatemnitev)")
     Text(
-        "Ko po izbrani uri zacnes predvajati radio, se zaslon zatemni. Konec: ko radio ustavis ali ko mine jutranja ura.",
+        "Ko po izbrani uri zacnes predvajati radio, se zaslon zatemni. Konec: ob jutranji uri ali ob zvonjenju alarma (ali takoj, ko radio ustavis, ce izklopis spodnjo moznost).",
         color = Color.LightGray,
         fontSize = 12.sp,
     )
@@ -207,6 +318,13 @@ internal fun NightSettingsSection(s: AppSettings, onChange: Change) {
     if (s.nightEnabled) {
         TimeRow("Zatemni, ce radio zacnes po", s.nightStartMin) { m -> onChange { it.copy(nightStartMin = m) } }
         TimeRow("Jutranja ura (konec)", s.nightEndMin) { m -> onChange { it.copy(nightEndMin = m) } }
+        SwitchRow("Ostane zatemnjeno do jutra, tudi ko se radio ustavi", s.nightStayUntilMorning) { v ->
+            onChange { it.copy(nightStayUntilMorning = v) }
+        }
+        SwitchRow("Ugasni zaslon (sistem ga ugasne po casu mirovanja)", s.nightScreenOff) { v ->
+            onChange { it.copy(nightScreenOff = v) }
+        }
+        SwitchRow("Skrij uro ponoci", s.nightHideClock) { v -> onChange { it.copy(nightHideClock = v) } }
         SwitchRow("Izklopi diaprojekcijo (enobarvno ozadje)", s.nightPhotosOff) { v ->
             onChange { it.copy(nightPhotosOff = v) }
         }
@@ -220,11 +338,19 @@ internal fun NightSettingsSection(s: AppSettings, onChange: Change) {
         SliderRow("Svetlost ure in ikon", s.nightClockAlpha, 0.1f..1f, { "${(it * 100).toInt()} %" }) { v ->
             onChange { it.copy(nightClockAlpha = v) }
         }
+        SwitchRow("Ob zatemnitvi nastavi glasnost", s.nightVolumeEnabled) { v ->
+            onChange { it.copy(nightVolumeEnabled = v) }
+        }
+        if (s.nightVolumeEnabled) {
+            SliderRow("Glasnost", s.nightVolumePct.toFloat(), 0f..100f, { "${it.toInt()} %" }) { v ->
+                onChange { it.copy(nightVolumePct = v.toInt()) }
+            }
+        }
     }
 }
 
 @Composable
-private fun TimeRow(label: String, minutes: Int, onPick: (Int) -> Unit) {
+internal fun TimeRow(label: String, minutes: Int, onPick: (Int) -> Unit) {
     val context = LocalContext.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = Color.White, modifier = Modifier.weight(1f))

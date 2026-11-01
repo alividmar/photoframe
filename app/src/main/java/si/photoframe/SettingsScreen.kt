@@ -27,6 +27,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +54,7 @@ fun SettingsScreen(
     onChange: ((AppSettings) -> AppSettings) -> Unit,
     onClose: () -> Unit,
 ) {
+    var tab by rememberSaveable { mutableIntStateOf(0) }
     val context = LocalContext.current
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
         if (uri != null) {
@@ -76,16 +79,12 @@ fun SettingsScreen(
                 Button(onClick = onClose) { Text("Zapri") }
             }
 
-            // Predogled ure
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(260.dp)
-                    .background(Color(0xFF455A64))
-                    .padding(16.dp),
-                contentAlignment = s.clockPosition.alignment(),
-            ) { ClockOverlay(s) }
+            ChipRow(
+                listOf(0 to "Slike", 1 to "Ura", 2 to "Zaslon", 3 to "Radio", 4 to "Alarmi", 5 to "Spanje"),
+                tab,
+            ) { v -> tab = v }
 
+            if (tab == 0) {
             Title("Slike")
             Button(onClick = { picker.launch(null) }) { Text("Izberi mapo s slikami") }
             Text(
@@ -108,6 +107,18 @@ fun SettingsScreen(
             SwitchRow("Prehod prek crnine (milejse pri veliki razliki svetlosti)", s.fadeThroughBlack) { v ->
                 onChange { it.copy(fadeThroughBlack = v) }
             }
+
+            }
+            if (tab == 1) {
+            // Predogled ure
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .background(Color(0xFF455A64))
+                    .padding(16.dp),
+                contentAlignment = s.clockPosition.alignment(),
+            ) { ClockOverlay(s) }
 
             Title("Ura")
             ChipRow(
@@ -158,6 +169,8 @@ fun SettingsScreen(
                 SwitchRow("Prikazi sekunde", s.showSeconds) { v -> onChange { it.copy(showSeconds = v) } }
             }
 
+            }
+            if (tab == 2) {
             Title("OLED zascita")
             Text(
                 "Ura se premika v okolici polozaja, ki si ga izbral zgoraj.",
@@ -183,8 +196,14 @@ fun SettingsScreen(
                 }
             }
 
-            RadioSettingsSection(s, onChange)
-            NightSettingsSection(s, onChange)
+            SliderRow("Velikost ikon spodaj", s.barScale, 1f..2.5f, { "${(it * 100).toInt()} %" }) { v ->
+                onChange { it.copy(barScale = v) }
+            }
+
+            }
+            if (tab == 3) RadioSettingsSection(s, onChange)
+            if (tab == 4) AlarmSettingsSection(s, onChange)
+            if (tab == 5) NightSettingsSection(s, onChange)
         }
     }
 }

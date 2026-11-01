@@ -61,6 +61,18 @@ data class AppSettings(
     val nightBgColor: Long = 0xFF000000,
     val nightBrightness: Float = 0.1f,
     val nightClockAlpha: Float = 0.35f,
+    val nightVolumeEnabled: Boolean = false,
+    val nightVolumePct: Int = 30,
+    val nightStayUntilMorning: Boolean = true,   // zatemnitev traja do jutranje ure, tudi ko se radio ustavi
+    val nightScreenOff: Boolean = false,         // zaslon naj se ugasne (sistem ga ugasne po casu mirovanja)
+    val nightHideClock: Boolean = false,
+    // Alarmi, privzeti izklop radia, velikost ikon spodaj
+    val alarms: List<AlarmConfig> = AlarmCodec.defaults,
+    val defaultTimerMin: Int = 0,
+    val barScale: Float = 2f,
+    // Med predvajanjem radia (ob kateremkoli casu)
+    val radioHideClock: Boolean = false,
+    val radioScreenOff: Boolean = false,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "photoframe_settings")
@@ -98,6 +110,16 @@ class SettingsRepository(private val context: Context) {
     private val kNightBg = longPreferencesKey("night_bg_color")
     private val kNightBright = floatPreferencesKey("night_brightness")
     private val kNightAlpha = floatPreferencesKey("night_clock_alpha")
+    private val kNightVolOn = booleanPreferencesKey("night_volume_enabled")
+    private val kNightVol = intPreferencesKey("night_volume_pct")
+    private val kNightStay = booleanPreferencesKey("night_stay_until_morning")
+    private val kNightScreenOff = booleanPreferencesKey("night_screen_off")
+    private val kNightHideClock = booleanPreferencesKey("night_hide_clock")
+    private val kAlarms = stringPreferencesKey("alarms_json")
+    private val kDefTimer = intPreferencesKey("default_timer_min")
+    private val kBarScale = floatPreferencesKey("bar_scale")
+    private val kRadioHideClock = booleanPreferencesKey("radio_hide_clock")
+    private val kRadioScreenOff = booleanPreferencesKey("radio_screen_off")
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { read(it) }
 
@@ -144,6 +166,16 @@ class SettingsRepository(private val context: Context) {
             nightBgColor = p[kNightBg] ?: d.nightBgColor,
             nightBrightness = p[kNightBright] ?: d.nightBrightness,
             nightClockAlpha = p[kNightAlpha] ?: d.nightClockAlpha,
+            nightVolumeEnabled = p[kNightVolOn] ?: d.nightVolumeEnabled,
+            nightVolumePct = p[kNightVol] ?: d.nightVolumePct,
+            nightStayUntilMorning = p[kNightStay] ?: d.nightStayUntilMorning,
+            nightScreenOff = p[kNightScreenOff] ?: d.nightScreenOff,
+            nightHideClock = p[kNightHideClock] ?: d.nightHideClock,
+            alarms = p[kAlarms]?.let { AlarmCodec.decode(it) } ?: d.alarms,
+            defaultTimerMin = p[kDefTimer] ?: d.defaultTimerMin,
+            barScale = p[kBarScale] ?: d.barScale,
+            radioHideClock = p[kRadioHideClock] ?: d.radioHideClock,
+            radioScreenOff = p[kRadioScreenOff] ?: d.radioScreenOff,
         )
     }
 
@@ -180,5 +212,15 @@ class SettingsRepository(private val context: Context) {
         p[kNightBg] = s.nightBgColor
         p[kNightBright] = s.nightBrightness
         p[kNightAlpha] = s.nightClockAlpha
+        p[kNightVolOn] = s.nightVolumeEnabled
+        p[kNightVol] = s.nightVolumePct
+        p[kNightStay] = s.nightStayUntilMorning
+        p[kNightScreenOff] = s.nightScreenOff
+        p[kNightHideClock] = s.nightHideClock
+        p[kAlarms] = AlarmCodec.encode(s.alarms)
+        p[kDefTimer] = s.defaultTimerMin
+        p[kBarScale] = s.barScale
+        p[kRadioHideClock] = s.radioHideClock
+        p[kRadioScreenOff] = s.radioScreenOff
     }
 }

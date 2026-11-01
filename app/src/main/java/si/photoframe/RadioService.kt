@@ -21,7 +21,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 
@@ -67,6 +67,12 @@ class RadioService : Service() {
                     finish(RadioStatus.ERROR)
                 } else {
                     RadioState.station.value = Station(id, name, url)
+                    RadioState.error.value = null
+                    // Casovnik: najprej izklop te postaje, sicer privzeti izklop (samo ob svezem zagonu radia)
+                    val minutes = intent.getIntExtra(EXTRA_MIN, 0)
+                    val defaultMin = intent.getIntExtra(EXTRA_DEF_MIN, 0)
+                    val wasRunning = running()
+                    if (minutes > 0) applyTimer(minutes) else if (!wasRunning && defaultMin > 0) applyTimer(defaultMin)
                     RadioState.status.value = RadioStatus.LOADING
                     retryCount = 0
                     handler.removeCallbacks(retryRunnable)
@@ -88,11 +94,8 @@ class RadioService : Service() {
     }
 
     private fun createPlayer(): ExoPlayer {
-        val http = DefaultHttpDataSource.Factory()
-            .setAllowCrossProtocolRedirects(true)   // http -> https preusmeritve
-            .setUserAgent("PhotoFrame/0.4")
-            .setConnectTimeoutMs(15_000)
-            .setReadTimeoutMs(15_000)
+        // OkHttp s prilagojenim preverjanjem certifikatov (da https deluje tudi na starih napravah)
+        val http = OkHttpDataSource.Factory(SecureHttp.client(this)).setUserAgent("PhotoFrame/0.4")
         val sources = DefaultMediaSourceFactory(this).setDataSourceFactory(http)
         val p = ExoPlayer.Builder(this)
             .setMediaSourceFactory(sources)
@@ -124,10 +127,22 @@ class RadioService : Service() {
             }
 
             override fun onPlayerError(error: PlaybackException) {
+                RadioState.error.value = describe(error)
                 scheduleRetry()
             }
         })
         return p
+    }
+
+    /** Kratek opis napake: koda ExoPlayerja + najglobji vzrok (npr. SSLHandshakeException ...). */
+    private fun describe(e: PlaybackException): String {
+        var last: Throwable = e
+        var depth = 0
+        while (last.cause != null && depth < 8) {
+            last = last.cause!!
+            depth++
+        }
+        return "${e.errorCodeName}: ${last.javaClass.simpleName} ${last.message.orEmpty()}".trim().take(220)
     }
 
     private fun scheduleRetry() {
@@ -224,6 +239,7 @@ class RadioService : Service() {
         private const val EXTRA_NAME = "name"
         private const val EXTRA_URL = "url"
         private const val EXTRA_MIN = "min"
+        private const val EXTRA_DEF_MIN = "defmin"
         private const val CHANNEL_ID = "radio"
         private const val NOTIF_ID = 1001
         private const val MAX_RETRIES = 6
@@ -231,9 +247,12 @@ class RadioService : Service() {
         private fun running(): Boolean =
             RadioState.status.value == RadioStatus.LOADING || RadioState.status.value == RadioStatus.PLAYING
 
-        fun play(context: Context, st: Station) {
+        /** Zazene postajo. defaultMin = privzeti izklop iz nastavitev (uporabi se, ce postaja nima svojega). */
+        fun play(context: Context, st: Station, defaultMin: Int = 0) {
             val i = Intent(context, RadioService::class.java)
                 .setAction(ACTION_PLAY)
+                .putExtra(EXTRA_MIN, st.autoOffMin)
+                .putExtra(EXTRA_DEF_MIN, defaultMin)
                 .putExtra(EXTRA_ID, st.id)
                 .putExtra(EXTRA_NAME, st.name)
                 .putExtra(EXTRA_URL, st.url)
