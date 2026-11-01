@@ -6,15 +6,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
-import java.io.File
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -118,15 +109,23 @@ internal fun RadioSettingsSection(s: AppSettings, onChange: Change) {
     }
 
     if (adding) {
-        StationDialog(null, { adding = false }) { st ->
+        StationDialog(null, { adding = false }) { name, url ->
             adding = false
-            onChange { cur -> cur.copy(stations = cur.stations + st) }
+            val u = url.trim()
+            onChange { cur -> cur.copy(stations = cur.stations + Station(newStationId(), name.trim().ifBlank { u }, u)) }
         }
     }
-    editing?.let { old ->
-        StationDialog(old, { editing = null }) { st ->
+    editing?.let { st ->
+        StationDialog(st, { editing = null }) { name, url ->
             editing = null
-            onChange { cur -> cur.copy(stations = cur.stations.map { x -> if (x.id == old.id) st else x }) }
+            val u = url.trim()
+            onChange { cur ->
+                cur.copy(
+                    stations = cur.stations.map { x ->
+                        if (x.id == st.id) x.copy(name = name.trim().ifBlank { u }, url = u) else x
+                    },
+                )
+            }
         }
     }
 }
@@ -136,9 +135,6 @@ private fun StationRow(st: Station, playing: Boolean, onToggle: () -> Unit, onEd
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(st.name, color = Color.White)
         Text(st.url, color = Color.Gray, fontSize = 11.sp, maxLines = 1)
-        if (st.autoOffMin > 0) {
-            Text("Samodejni izklop po ${st.autoOffMin} min", color = Color(0xFF69F0AE), fontSize = 11.sp)
-        }
         Row {
             TextButton(onClick = onToggle) { Text(if (playing) "Ustavi" else "Poslusaj") }
             TextButton(onClick = onEdit) { Text("Uredi") }
@@ -172,41 +168,17 @@ private fun SlotPicker(index: Int, s: AppSettings, onChange: Change) {
 }
 
 @Composable
-private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Station) -> Unit) {
-    val context = LocalContext.current
-    val id = remember { initial?.id ?: newStationId() }
+private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var url by remember { mutableStateOf(initial?.url ?: "") }
-    var icon by remember { mutableStateOf(initial?.iconUrl ?: "") }
-    var offText by remember { mutableStateOf((initial?.autoOffMin ?: 0).toString()) }
     val u = url.trim()
     val valid = u.startsWith("http://", true) || u.startsWith("https://", true)
-
-    // Slika iz naprave se skopira v pomnilnik aplikacije (tako ni potrebna dolga povezava)
-    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null) {
-            val file = File(context.filesDir, "icon_${id}_${System.currentTimeMillis()}.img")
-            val ok = runCatching {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    file.outputStream().use { out -> input.copyTo(out) }
-                }
-            }.isSuccess
-            if (ok) {
-                icon = "file://" + file.absolutePath
-            } else {
-                Toast.makeText(context, "Slike ni bilo mogoce prebrati.", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initial == null) "Nova postaja" else "Uredi postajo") },
         text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
                     label = { Text("Ime") }, singleLine = true,
@@ -215,40 +187,9 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Sta
                     value = url, onValueChange = { url = it },
                     label = { Text("Povezava (http:// ali https://)") }, singleLine = true,
                 )
-                OutlinedTextField(
-                    value = icon, onValueChange = { icon = it },
-                    label = { Text("Ikona: povezava (neobvezno)") }, singleLine = true,
-                )
-                OutlinedTextField(
-                    value = offText,
-                    onValueChange = { offText = it.filter { c -> c.isDigit() }.take(3) },
-                    label = { Text("Samodejni izklop po (minut, 0 = brez)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (icon.isNotBlank()) {
-                        AsyncImage(
-                            model = icon,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
-                        )
-                    }
-                    OutlinedButton(onClick = { pickImage.launch(arrayOf("image/*")) }) { Text("Izberi sliko ...") }
-                    if (icon.isNotBlank()) TextButton(onClick = { icon = "" }) { Text("Odstrani") }
-                }
             }
         },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val off = (offText.toIntOrNull() ?: 0).coerceIn(0, 720)
-                    onSave(Station(id, name.trim().ifBlank { u }, u, icon.trim(), off))
-                },
-                enabled = valid,
-            ) { Text("Shrani") }
-        },
+        confirmButton = { TextButton(onClick = { onSave(name, url) }, enabled = valid) { Text("Shrani") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Preklici") } },
     )
 }
@@ -278,14 +219,6 @@ internal fun NightSettingsSection(s: AppSettings, onChange: Change) {
         }
         SliderRow("Svetlost ure in ikon", s.nightClockAlpha, 0.1f..1f, { "${(it * 100).toInt()} %" }) { v ->
             onChange { it.copy(nightClockAlpha = v) }
-        }
-        SwitchRow("Ob zatemnitvi nastavi glasnost", s.nightVolumeEnabled) { v ->
-            onChange { it.copy(nightVolumeEnabled = v) }
-        }
-        if (s.nightVolumeEnabled) {
-            SliderRow("Glasnost", s.nightVolumePct.toFloat(), 0f..100f, { "${it.toInt()} %" }) { v ->
-                onChange { it.copy(nightVolumePct = v.toInt()) }
-            }
         }
     }
 }

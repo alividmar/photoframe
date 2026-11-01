@@ -61,8 +61,6 @@ data class AppSettings(
     val nightBgColor: Long = 0xFF000000,
     val nightBrightness: Float = 0.1f,
     val nightClockAlpha: Float = 0.35f,
-    val nightVolumeEnabled: Boolean = false,
-    val nightVolumePct: Int = 30,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "photoframe_settings")
@@ -100,8 +98,6 @@ class SettingsRepository(private val context: Context) {
     private val kNightBg = longPreferencesKey("night_bg_color")
     private val kNightBright = floatPreferencesKey("night_brightness")
     private val kNightAlpha = floatPreferencesKey("night_clock_alpha")
-    private val kNightVolOn = booleanPreferencesKey("night_volume_enabled")
-    private val kNightVol = intPreferencesKey("night_volume_pct")
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { read(it) }
 
@@ -148,8 +144,6 @@ class SettingsRepository(private val context: Context) {
             nightBgColor = p[kNightBg] ?: d.nightBgColor,
             nightBrightness = p[kNightBright] ?: d.nightBrightness,
             nightClockAlpha = p[kNightAlpha] ?: d.nightClockAlpha,
-            nightVolumeEnabled = p[kNightVolOn] ?: d.nightVolumeEnabled,
-            nightVolumePct = p[kNightVol] ?: d.nightVolumePct,
         )
     }
 
@@ -186,7 +180,5 @@ class SettingsRepository(private val context: Context) {
         p[kNightBg] = s.nightBgColor
         p[kNightBright] = s.nightBrightness
         p[kNightAlpha] = s.nightClockAlpha
-        p[kNightVolOn] = s.nightVolumeEnabled
-        p[kNightVol] = s.nightVolumePct
     }
 }

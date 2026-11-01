@@ -1,7 +1,6 @@
 package si.photoframe
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,11 +36,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 
 /**
@@ -84,7 +81,7 @@ fun BottomBar(
                 st == null -> Color(0x88FFFFFF)
                 else -> Color.White
             }
-            BarButton(Icons.Filled.Radio, st?.name?.take(8) ?: "prazno", tint, st?.iconUrl) { onSlot(i) }
+            BarButton(Icons.Filled.Radio, st?.name?.take(8) ?: "prazno", tint) { onSlot(i) }
         }
         if (radioOn) TimerButton(timerEndsAt, onTimer)
         Spacer(Modifier.weight(1f))
@@ -96,14 +93,7 @@ fun BottomBar(
 }
 
 @Composable
-private fun BarButton(
-    icon: ImageVector,
-    label: String,
-    tint: Color = Color.White,
-    imageUrl: String? = null,
-    onClick: () -> Unit,
-) {
-    var failed by remember(imageUrl) { mutableStateOf(false) }
+private fun BarButton(icon: ImageVector, label: String, tint: Color = Color.White, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
@@ -111,22 +101,7 @@ private fun BarButton(
             .padding(horizontal = 14.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (!imageUrl.isNullOrBlank() && !failed) {
-            // Ikona postaje; barvni obroc kaze stanje (zeleno = igra, rumeno = nalaga)
-            val shape = RoundedCornerShape(8.dp)
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = label,
-                contentScale = ContentScale.Crop,
-                onError = { failed = true },
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(shape)
-                    .border(2.dp, if (tint == Color.White) Color(0x55FFFFFF) else tint, shape),
-            )
-        } else {
-            Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(32.dp))
-        }
+        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(32.dp))
         Text(label, color = tint, fontSize = 12.sp, maxLines = 1)
     }
 }
