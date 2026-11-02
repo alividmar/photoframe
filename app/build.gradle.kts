@@ -12,8 +12,20 @@ android {
         applicationId = "si.photoframe"
         minSdk = 21
         targetSdk = 35
-        versionCode = 14
-        versionName = "0.7.2"
+        versionCode = 15
+        versionName = "0.7.3"
+    }
+
+    // Stalen podpisni kljuc: vse gradnje so podpisane z istim kljucem, zato se nova razlicica namesti cez staro
+    // (prej je GitHub vsakic ustvaril nov kljuc, kar je dalo "App not installed").
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            storeType = "pkcs12"
+        }
     }
 
     buildTypes {

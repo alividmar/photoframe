@@ -96,3 +96,8 @@
 ## 2026-11-01 — v0.7.2
 - Vprasanje uporabnika: ali se tablica zjutraj sama odklene (brez PIN-a/vzorca, vedno na polnilcu). Ob izklopu zaslona z lockNow se pri zaklepu "podrsaj" ob zbujanju pokaze zaklenjen zaslon.
 - Ob vklopljenem nocnem izklopu zaslona je aplikacija zdaj vedno prikazana tudi nad preprostim zaklepom (setShowWhenLocked/setTurnScreenOn), ob koncu nocnega okna pa se poskusi odkleniti (requestDismissKeyguard / FLAG_DISMISS_KEYGUARD). Pri zaklepu "brez" lockNow samo ugasne zaslon.
+
+## 2026-11-02 — v0.7.3
+- Uporabnik: pri namestitvi nove razlicice "App not installed". Najverjetnejsi vzrok: GitHub Actions vsakic ustvari nov razhroscevalni podpisni kljuc, zato se APK z drugim podpisom ne namesti cez obstojeco aplikacijo.
+- Dodan stalen kljuc app/debug.keystore (PKCS12, alias androiddebugkey, geslo android; samo za osebno uporabo, ni skrivnost) in signingConfigs.debug. Prva namestitev po tej spremembi se se zahteva odstranitev stare aplikacije; nadaljnje se namestijo cez staro.
+- .gitignore: izjema za app/debug.keystore.
