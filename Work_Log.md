@@ -92,3 +92,7 @@
 - Brez skrbniskih pravic ostane star nacin (zaslon ugasne po sistemskem casu mirovanja).
 - Glasnost ob zatemnitvi se nastavi, ko ponoci zacne igrati radio.
 - STANJE: ni prevedeno v tem okolju; zaklep in zbujanje nista preizkusena na napravi.
+
+## 2026-11-01 — v0.7.2
+- Vprasanje uporabnika: ali se tablica zjutraj sama odklene (brez PIN-a/vzorca, vedno na polnilcu). Ob izklopu zaslona z lockNow se pri zaklepu "podrsaj" ob zbujanju pokaze zaklenjen zaslon.
+- Ob vklopljenem nocnem izklopu zaslona je aplikacija zdaj vedno prikazana tudi nad preprostim zaklepom (setShowWhenLocked/setTurnScreenOn), ob koncu nocnega okna pa se poskusi odkleniti (requestDismissKeyguard / FLAG_DISMISS_KEYGUARD). Pri zaklepu "brez" lockNow samo ugasne zaslon.

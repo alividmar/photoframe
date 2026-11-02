@@ -50,6 +50,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.draw.alpha
 import androidx.core.content.ContextCompat
 import java.time.LocalTime
+import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
@@ -129,6 +130,17 @@ fun Activity.allowOverLockScreen(on: Boolean) {
     } else {
         val f = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
         if (on) window.addFlags(f) else window.clearFlags(f)
+    }
+}
+
+/** Poskusi odstraniti preprost zaklep zaslona (brez PIN-a ali vzorca). */
+@Suppress("DEPRECATION")
+fun Activity.dismissKeyguard() {
+    if (Build.VERSION.SDK_INT >= 26) {
+        val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        km.requestDismissKeyguard(this, null)
+    } else {
+        window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
     }
 }
 
@@ -218,8 +230,15 @@ fun App(repo: SettingsRepository) {
     }
 
     // Med zvonjenjem alarma smemo prikaz nad zaklenjenim zaslonom; po koncu spet ne
-    LaunchedEffect(ringing != null) {
-        activity?.allowOverLockScreen(ringing != null)
+    // Ce je vklopljen nocni izklop zaslona, je aplikacija vedno prikazana tudi nad preprostim zaklepom (podrsaj),
+    // da se ob zbujanju ne zahteva rocno odklepanje.
+    LaunchedEffect(ringing != null, s.nightEnabled, s.nightScreenOff) {
+        activity?.allowOverLockScreen(ringing != null || (s.nightEnabled && s.nightScreenOff))
+    }
+
+    // Ob koncu nocnega okna poskusimo odkleniti preprost zaklep (ne deluje pri PIN-u ali vzorcu)
+    LaunchedEffect(nightActive) {
+        if (!nightActive && s.nightEnabled && s.nightScreenOff) activity?.dismissKeyguard()
     }
 
     // Napaka radia (povezava ni uspela niti po vec poskusih)
