@@ -80,7 +80,7 @@ fun SettingsScreen(
             }
 
             ChipRow(
-                listOf(0 to "Slike", 1 to "Ura", 2 to "Zaslon", 3 to "Radio", 4 to "Alarmi", 5 to "Spanje"),
+                listOf(0 to "Slike", 1 to "Ura", 2 to "Zaslon", 3 to "Radio", 4 to "Alarmi", 5 to "Spanje", 6 to "Vreme"),
                 tab,
             ) { v -> tab = v }
 
@@ -205,6 +205,7 @@ fun SettingsScreen(
             if (tab == 3) RadioSettingsSection(s, onChange)
             if (tab == 4) AlarmSettingsSection(s, onChange)
             if (tab == 5) NightSettingsSection(s, onChange)
+            if (tab == 6) WeatherSettingsSection(s, onChange)
         }
     }
 }

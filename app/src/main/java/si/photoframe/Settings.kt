@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -79,6 +80,14 @@ data class AppSettings(
     val cacheMb: Int = 300,
     val nightTrigger: NightTrigger = NightTrigger.SCHEDULE,
     val nightRelockSec: Int = 30,   // ponoci se zaslon po toliko sekundah brez dotika spet ugasne
+    // Vreme
+    val weatherEnabled: Boolean = false,
+    val wuStation: String = "",
+    val wuApiKey: String = "",
+    val cityName: String = "",
+    val cityLat: Double = 0.0,
+    val cityLon: Double = 0.0,
+    val forecastSec: Int = 10,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "photoframe_settings")
@@ -130,6 +139,13 @@ class SettingsRepository(private val context: Context) {
     private val kCacheMb = intPreferencesKey("remote_cache_mb")
     private val kNightTrigger = stringPreferencesKey("night_trigger")
     private val kNightRelock = intPreferencesKey("night_relock_sec")
+    private val kWeatherOn = booleanPreferencesKey("weather_enabled")
+    private val kWuStation = stringPreferencesKey("wu_station")
+    private val kWuKey = stringPreferencesKey("wu_api_key")
+    private val kCityName = stringPreferencesKey("city_name")
+    private val kCityLat = doublePreferencesKey("city_lat")
+    private val kCityLon = doublePreferencesKey("city_lon")
+    private val kForecastSec = intPreferencesKey("forecast_sec")
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { read(it) }
 
@@ -190,6 +206,13 @@ class SettingsRepository(private val context: Context) {
             cacheMb = p[kCacheMb] ?: d.cacheMb,
             nightTrigger = enumOf(p[kNightTrigger], d.nightTrigger),
             nightRelockSec = p[kNightRelock] ?: d.nightRelockSec,
+            weatherEnabled = p[kWeatherOn] ?: d.weatherEnabled,
+            wuStation = p[kWuStation] ?: d.wuStation,
+            wuApiKey = p[kWuKey] ?: d.wuApiKey,
+            cityName = p[kCityName] ?: d.cityName,
+            cityLat = p[kCityLat] ?: d.cityLat,
+            cityLon = p[kCityLon] ?: d.cityLon,
+            forecastSec = p[kForecastSec] ?: d.forecastSec,
         )
     }
 
@@ -240,5 +263,12 @@ class SettingsRepository(private val context: Context) {
         p[kCacheMb] = s.cacheMb
         p[kNightTrigger] = s.nightTrigger.name
         p[kNightRelock] = s.nightRelockSec
+        p[kWeatherOn] = s.weatherEnabled
+        p[kWuStation] = s.wuStation
+        p[kWuKey] = s.wuApiKey
+        p[kCityName] = s.cityName
+        p[kCityLat] = s.cityLat
+        p[kCityLon] = s.cityLon
+        p[kForecastSec] = s.forecastSec
     }
 }

@@ -66,8 +66,13 @@ fun rememberNow(precise: Boolean): State<LocalDateTime> =
 
 /** Ura (digitalna ali analogna) z barvami in ozadjem po nastavitvah. */
 @Composable
-fun ClockOverlay(s: AppSettings, modifier: Modifier = Modifier) {
-    if (s.clockStyle == ClockStyle.OFF) return
+fun ClockOverlay(
+    s: AppSettings,
+    modifier: Modifier = Modifier,
+    weather: WeatherData? = null,
+    onWeatherClick: () -> Unit = {},
+) {
+    if (s.clockStyle == ClockStyle.OFF && weather == null) return
     val now by rememberNow(s.showSeconds)
     val fg = Color(s.clockColor)
     val bg = Color(s.clockBgColor).copy(alpha = s.clockBgAlpha)
@@ -77,10 +82,15 @@ fun ClockOverlay(s: AppSettings, modifier: Modifier = Modifier) {
             .background(bg, RoundedCornerShape(24.dp))
             .padding(24.dp),
     ) {
-        when (s.clockStyle) {
-            ClockStyle.DIGITAL -> DigitalClock(now, s, fg)
-            ClockStyle.ANALOG -> AnalogClock(now, s, fg)
-            ClockStyle.OFF -> Unit
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            when (s.clockStyle) {
+                ClockStyle.DIGITAL -> DigitalClock(now, s, fg)
+                ClockStyle.ANALOG -> AnalogClock(now, s, fg)
+                ClockStyle.OFF -> Unit
+            }
+            if (weather != null) {
+                WeatherRow(weather, fg, s.clockScale, onWeatherClick)
+            }
         }
     }
 }

@@ -101,3 +101,20 @@
 - Uporabnik: pri namestitvi nove razlicice "App not installed". Najverjetnejsi vzrok: GitHub Actions vsakic ustvari nov razhroscevalni podpisni kljuc, zato se APK z drugim podpisom ne namesti cez obstojeco aplikacijo.
 - Dodan stalen kljuc app/debug.keystore (PKCS12, alias androiddebugkey, geslo android; samo za osebno uporabo, ni skrivnost) in signingConfigs.debug. Prva namestitev po tej spremembi se se zahteva odstranitev stare aplikacije; nadaljnje se namestijo cez staro.
 - .gitignore: izjema za app/debug.keystore.
+
+## 2026-11-02 — v0.7.4
+- Uporabnik: po 0.7.3 se vedno "App not installed" brez dodatnega sporocila. Vzrok ni potrjen (mozno: stara aplikacija z drugim podpisom ali aktivnimi skrbniskimi pravicami se je namescena, premalo prostora, ali vloga novega kljuca na zelo stari napravi).
+- Ključ zamenjan z bolj konservativnim: SHA256withRSA, veljavnost 10000 dni (prej SHA384withRSA, 100 let), da ga zagotovo sprejmejo tudi stare verzije Androida.
+- Natancen vzrok je mogoce dobiti z `adb install` (izpise INSTALL_FAILED_...).
+
+## 2026-11-02 — popravek (ostaja 0.7.3)
+- Uporabnik je 0.7.3 namestil uspesno (ponovni poskus). Zato kljuca NE zamenjujemo: nov kljuc iz 0.7.4 bi spet povzrocil "App not installed". 0.7.4 je umaknjen (koda je bila enaka 0.7.3).
+- app/debug.keystore je v uporabnikovem repozitoriju in ga ni v ZIP-ih; ne prepisovati.
+
+## 2026-11-02 — v0.8.0 (vreme)
+- Uporabnik zeli vreme (temperatura + ikona) kot ura, podatki iz Weather Underground (postaja IPOSTO50), dotik pokaze tedensko napoved za izbrano mesto za nastavljivo stevilo sekund.
+- Preverjeno z iskanjem: WU PWS API je https://api.weather.com/v2/pws/observations/current?apiKey=..&stationId=..&format=json&units=m (odgovor observations[0].metric.temp); API kljuc dobijo lastniki postaj v racunu (kljuc je treba cez cas obnoviti). Neuradnega "javnega" kljuca s domace strani WU ne uporabljamo (nezanesljiv, spreminja se).
+- WU vrne samo meritve (brez ikone stanja). Zato: temperatura iz WU (ce je vnesen kljuc), sicer iz Open-Meteo; ikona stanja in 7-dnevna napoved iz Open-Meteo (brezplacno, brez kljuca, nekomercialno; iskanje mesta prek geocoding-api.open-meteo.com).
+- Ikone stanja so vektorske (Material), ne emoji, ker stari Android nima vseh emoji.
+- Osvezevanje vsakih 10 min. Nov zavihek "Vreme" v nastavitvah.
+- STANJE: ni prevedeno v tem okolju; WU klic ni preizkusen (potrebuje uporabnikov kljuc).

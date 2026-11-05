@@ -167,6 +167,8 @@ fun App(repo: SettingsRepository) {
     val radioStation by RadioState.station.collectAsState()
     val timerEndsAt by RadioState.timerEndsAt.collectAsState()
     val ringing by AlarmState.ringing.collectAsState()
+    val weather by WeatherState.data.collectAsState()
+    var showForecast by remember { mutableStateOf(false) }
     val radioOn = radioStatus == RadioStatus.LOADING || radioStatus == RadioStatus.PLAYING
     // Zaslon se lahko ugasne (sistem ga ugasne po casu mirovanja): ponoci ali kadar koli igra radio, ce uporabnik tako zeli
     val screenMayOff = (nightActive && s.nightScreenOff) || (radioOn && s.radioScreenOff && ringing == null)
@@ -221,6 +223,33 @@ fun App(repo: SettingsRepository) {
             } catch (e: Throwable) {
                 Toast.makeText(context, "${src.name}: ${NasClient.describe(e)}", Toast.LENGTH_LONG).show()
             }
+        }
+    }
+
+    // Vreme: osvezujemo vsakih 10 minut
+    LaunchedEffect(s.weatherEnabled, s.wuStation, s.wuApiKey, s.cityLat, s.cityLon) {
+        if (!s.weatherEnabled) {
+            WeatherState.data.value = null
+            return@LaunchedEffect
+        }
+        while (true) {
+            try {
+                WeatherState.data.value = WeatherClient.fetch(context, s)
+                WeatherState.error.value = null
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                WeatherState.error.value = NasClient.describe(e)
+            }
+            delay(10 * 60_000L)
+        }
+    }
+
+    // Tedenska napoved se po nastavljenem casu sama zapre
+    LaunchedEffect(showForecast, s.forecastSec) {
+        if (showForecast) {
+            delay(s.forecastSec * 1000L)
+            showForecast = false
         }
     }
 
@@ -392,6 +421,8 @@ fun App(repo: SettingsRepository) {
         if (!hideClock) {
             ClockOverlay(
                 s = s,
+                weather = if (s.weatherEnabled) weather else null,
+                onWeatherClick = { if (weather?.days?.isNotEmpty() == true) showForecast = true },
                 modifier = Modifier
                     .align(clockAlignment)
                     .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 96.dp)
@@ -447,6 +478,15 @@ fun App(repo: SettingsRepository) {
                     }
                 },
                 onSettings = { showSettings = true },
+            )
+        }
+
+        val forecastData = weather
+        if (showForecast && forecastData != null && forecastData.days.isNotEmpty()) {
+            ForecastPanel(
+                forecastData, s.cityName,
+                Modifier.align(Alignment.Center).padding(16.dp),
+                onClose = { showForecast = false },
             )
         }
 

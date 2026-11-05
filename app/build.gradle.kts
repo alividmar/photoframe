@@ -12,8 +12,8 @@ android {
         applicationId = "si.photoframe"
         minSdk = 21
         targetSdk = 35
-        versionCode = 15
-        versionName = "0.7.3"
+        versionCode = 16
+        versionName = "0.8.0"
     }
 
     // Stalen podpisni kljuc: vse gradnje so podpisane z istim kljucem, zato se nova razlicica namesti cez staro
